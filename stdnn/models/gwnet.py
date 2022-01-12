@@ -1,7 +1,19 @@
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-
+import numpy as np
+import json
+import os
+import time
+import stdnn
+from stdnn.models.STModel import STModel
+# TODO Remove once refactored
+from stdnn.preprocessing.utils import process_data
+# TODO Move to model utils, or to STModel
+from stdnn.utils import save_model
+# TODO Have as property/class method
+from stdnn.metrics.error import evaluate
+from stdnn.utils import load_model
 
 class NConv(nn.Module):
     def __init__(self):
@@ -46,11 +58,11 @@ class GCN(nn.Module):
         return h
 
 
-class GraphWaveNet(nn.Module):
+class GWN(STModel):
     def __init__(self, device, node_cnt, dropout=0.3, supports=None, gcn_bool=True, adapt_adj=True, adj_init=None,
                  in_dim=1, out_dim=12, residual_channels=32, dilation_channels=32, skip_channels=256, end_channels=512,
                  kernel_size=2, blocks=4, layers=2):
-        super(GraphWaveNet, self).__init__()
+        super().__init__()
         self.dropout = dropout
         self.blocks = blocks
         self.layers = layers
@@ -180,3 +192,252 @@ class GraphWaveNet(nn.Module):
         x = F.relu(self.end_conv_1(x))
         x = self.end_conv_2(x)
         return x
+
+    def train_model(self, train_data, valid_data, args, result_file):
+        """
+        Trains a graph neural network model and returns a set of validation performance metrics
+
+        Parameters
+        ----------
+        train_data : numpy.ndarray
+            Train set
+        valid_data : numpy.ndarray
+            Validation set
+        args : argparse.Namespace
+            Command line arguments
+        result_file : str
+            Directory to store trained model parameter files
+
+        Returns
+        -------
+        dict
+        """
+        self.to(args.device)
+        if len(train_data) == 0:
+            raise Exception('Cannot organize enough training data')
+        if len(valid_data) == 0:
+            raise Exception('Cannot organize enough validation data')
+
+        if args.norm_method == 'z_score':
+            train_mean = np.mean(train_data, axis=0)
+            train_std = np.std(train_data, axis=0)
+            norm_statistic = {"mean": train_mean.tolist(), "std": train_std.tolist()}
+
+        elif args.norm_method == 'min_max':
+            train_min = np.min(train_data, axis=0)
+            train_max = np.max(train_data, axis=0)
+            norm_statistic = {"min": train_min.tolist(), "max": train_max.tolist()}
+        else:
+            norm_statistic = None
+        if norm_statistic is not None:
+            with open(os.path.join(result_file, 'norm_stat.json'), 'w') as f:
+                json.dump(norm_statistic, f)
+
+        if args.optimizer == 'RMSProp':
+            optimizer = torch.optim.RMSprop(params=self.parameters(), lr=args.lr, eps=1e-08)
+        elif args.optimizer == 'SGD':
+            optimizer = torch.optim.SGD(params=self.parameters(), lr=args.lr, weight_decay=args.weight_decay)
+        elif args.optimizer == 'Adagrad':
+            optimizer = torch.optim.Adagrad(params=self.parameters(), lr=args.lr, weight_decay=args.weight_decay)
+        elif args.optimizer == 'Adadelta':
+            optimizer = torch.optim.Adadelta(params=self.parameters(), lr=args.lr, weight_decay=args.weight_decay)
+        else:
+            optimizer = torch.optim.Adam(params=self.parameters(), lr=args.lr, betas=(0.9, 0.999))
+
+        lr_scheduler = torch.optim.lr_scheduler.ExponentialLR(optimizer=optimizer, gamma=args.decay_rate)
+        scaler = None
+        
+        # TODO Move processing funtionality to class
+        x_train, y_train = process_data(train_data, args.window_size, args.horizon)
+        x_valid, y_valid = process_data(valid_data, args.window_size, args.horizon)
+
+        scaler = stdnn.preprocessing.loader.CustomStandardScaler(mean=x_train.mean(), std=x_train.std())
+
+        train_loader = stdnn.preprocessing.loader.CustomSimpleDataLoader(scaler.transform(x_train),
+                                                                    scaler.transform(y_train), args.batch_size)
+        valid_loader = stdnn.preprocessing.loader.CustomSimpleDataLoader(scaler.transform(x_valid),
+                                                                    scaler.transform(y_valid), args.batch_size)
+
+        criterion = nn.MSELoss(reduction='mean').to(args.device)
+
+        total_params = 0
+        for name, parameter in self.named_parameters():
+            if not parameter.requires_grad:
+                continue
+            param = parameter.numel()
+            total_params += param
+        print(f"Total Trainable Parameters: {total_params}")
+        print("Model:", args.model)
+        print()
+
+        best_validate_mae = np.inf
+        validate_score_non_decrease_count = 0
+        performance_metrics = {}
+        for epoch in range(args.epoch):
+            epoch_start_time = time.time()
+            self.train()
+            loss_total = 0
+            cnt = 0
+            train_loader.shuffle()
+            for i, (inputs, target) in enumerate(train_loader.get_iterator()):
+                inputs = torch.Tensor(inputs).to(args.device).transpose(1, 3)
+                target = torch.Tensor(target).to(args.device).transpose(1, 3)
+                inputs = F.pad(inputs, (1, 0, 0, 0))
+                self.zero_grad()
+                forecast = self(inputs).transpose(1, 3)
+                forecast = torch.unsqueeze(forecast[:, 0, :, :], dim=1)
+                target = torch.unsqueeze(target[:, 0, :, :], dim=1)
+                loss = criterion(forecast, target)
+                cnt += 1
+                loss.backward()
+                optimizer.step()
+                loss_total += float(loss)
+                
+            print('Epoch {:2d} | Time: {:4.2f}s | Total Loss: {:5.4f}'.format(epoch + 1, (
+                    time.time() - epoch_start_time), loss_total))
+            save_model(self, result_file, epoch)
+            if (epoch + 1) % args.exponential_decay_step == 0:
+                lr_scheduler.step()
+            if (epoch + 1) % args.validate_freq == 0:
+                is_best = False
+                print('------ VALIDATE ------')
+                performance_metrics = \
+                    self.validate_model(valid_loader, args.device, args.norm_method, args.horizon, scaler=scaler)
+                if np.abs(best_validate_mae) > np.abs(performance_metrics['mae']):
+                    best_validate_mae = performance_metrics['mae']
+                    is_best = True
+                    validate_score_non_decrease_count = 0
+                else:
+                    validate_score_non_decrease_count += 1
+                if is_best:
+                    save_model(self, result_file)
+            if args.early_stop and validate_score_non_decrease_count >= args.early_stop_step:
+                break
+        return performance_metrics
+
+    def custom_inference(self, data_loader, device='cpu'):
+        """
+        Performs inference and returns a set of GWN or MTGNN model predictions
+
+        Parameters
+        ----------
+        model : Union[GraphWaveNet, MTGNN]
+            Graph neural network model for inference
+        data_loader : Generator
+            An iterable data loader
+        device : str, optional
+            Torch device
+
+        Returns
+        -------
+        (torch.Tensor, torch.Tensor)
+        """
+        self.eval()
+        forecast_set = []
+        target_set = []
+        with torch.no_grad():
+            for i, (inputs, target) in enumerate(data_loader.get_iterator()):
+                inputs = torch.Tensor(inputs).to(device).transpose(1, 3)
+                target = torch.Tensor(target).to(device).transpose(1, 3)[:, 0, :, :]
+                forecast_result = self(inputs).transpose(1, 3)
+                forecast_result = torch.unsqueeze(forecast_result[:, 0, :, :], dim=1)
+                forecast_set.append(forecast_result.squeeze())
+                target_set.append(target.detach().cpu().numpy())
+
+        return torch.cat(forecast_set, dim=0)[:np.concatenate(target_set, axis=0).shape[0], ...], \
+            torch.Tensor(np.concatenate(target_set, axis=0))
+
+    def validate_model(self, data_loader, device, normalize_method, horizon, scaler=None):
+        """
+        Validates a graph neural network model and returns raw and normalized error metrics
+        computed on validation set predictions
+
+        Parameters
+        ----------
+        model : Union[GraphWaveNet, MTGNN, Model]
+            Graph neural network model for validation
+        model_name: str,
+            Graph neural network model name
+        data_loader : torch.Dataset
+            An iterable dataset
+        device : str
+            Torch device
+        normalize_method: str
+            Raw data normalization method
+        statistic: dict
+            Raw data statistics
+        node_cnt: int
+            count of graph nodes
+        window_size: int
+            Input sequence length or window size
+        horizon: int
+            Output sequence length or prediction horizon
+        scaler: CustomStandardScaler, optional
+            Scaler
+
+        Returns
+        -------
+        dict
+        """
+        forecast_norm, target_norm = self.custom_inference(data_loader, device)
+        mae = ([], [])
+        mape = ([], [])
+        rmse = ([], [])
+        for i in range(horizon):
+            if normalize_method:
+                if horizon == 1:
+                    forecast = torch.Tensor(scaler.inverse_transform(forecast_norm).cpu())
+                    target = torch.Tensor(scaler.inverse_transform(torch.squeeze(target_norm)).cpu())
+                else:
+                    forecast = torch.Tensor(scaler.inverse_transform(forecast_norm[:, :, i]).cpu())
+                    target = torch.Tensor(scaler.inverse_transform(target_norm[:, :, i]).cpu())
+            else:
+                forecast, target = forecast_norm, torch.squeeze(target_norm)
+
+            score = evaluate(target.detach().cpu().numpy(), forecast.detach().cpu().numpy())
+            if horizon == 1:
+                score_norm = evaluate(torch.squeeze(target_norm).detach().cpu().numpy(),
+                                    forecast_norm.detach().cpu().numpy())
+            else:
+                score_norm = evaluate(target_norm[:, :, i].detach().cpu().numpy(),
+                                    forecast_norm[:, :, i].detach().cpu().numpy())
+
+            mape[0].append(score[0])
+            mae[0].append(score[1])
+            rmse[0].append(score[2])
+
+            mape[1].append(score_norm[0])
+            mae[1].append(score_norm[1])
+            rmse[1].append(score_norm[2])
+        score = (np.mean(mape[0]), np.mean(mae[0]), np.mean(rmse[0]))
+        score_norm = (np.mean(mape[1]), np.mean(mae[1]), np.mean(rmse[1]))
+        print("NORM -  MAPE {:>8.4f}% | MAE {:>10.4f} | RMSE {:>10.4f}".format(score_norm[0] * 100, score_norm[1],
+                                                                            score_norm[2]))
+        print("RAW  -  MAPE {:>8.4f}% | MAE {:>10.4f} | RMSE {:>10.4f}".format(score[0] * 100, score[1], score[2]))
+        return dict(mae=score[1], mape=score[0], rmse=score[2])
+
+    def test_model(self, test_data, args, result_train_file):
+        """
+        Evaluates a GWN or MTGNN model and returns raw and normalized error metrics
+        computed on out-of-sample set predictions
+
+        Parameters
+        ----------
+        test_data : numpy.ndarray
+            Test set
+        args : argparse.Namespace
+            Command line arguments
+        result_train_file : str
+            Directory to load trained model parameter files
+        """
+        with open(os.path.join(result_train_file, 'norm_stat.json'), 'r') as f:
+            normalize_statistic = json.load(f)
+
+        x, y = process_data(test_data, args.window_size, args.horizon)
+        scaler = stdnn.preprocessing.loader.CustomStandardScaler(mean=x.mean(), std=x.std())
+        test_loader = stdnn.preprocessing.loader.CustomSimpleDataLoader(scaler.transform(x), scaler.transform(y),
+                                                                    args.batch_size)
+        performance_metrics = self.validate_model(test_loader, args.device, args.norm_method, args.horizon, scaler=scaler)
+        mae, mape, rmse = performance_metrics['mae'], performance_metrics['mape'], performance_metrics['rmse']
+        print('Test Set Performance: MAPE: {:5.2f} | MAE: {:5.2f} | RMSE: {:5.2f}'.format(mape * 100, mae, rmse))
+
