@@ -7,10 +7,10 @@ import seaborn as sn
 import torch
 import torch.utils.data
 
-import gnn.preprocessing.loader
-from gnn.evaluation.validation import validate, validate_baseline
-from gnn.preprocessing.utils import process_data
-from gnn.utils import load_model
+import stdnn.preprocessing.loader
+from stdnn.evaluation.validation import validate, validate_baseline
+from stdnn.preprocessing.utils import process_data
+from stdnn.utils import load_model
 
 
 def test(test_data, args, result_train_file):
@@ -31,7 +31,7 @@ def test(test_data, args, result_train_file):
         normalize_statistic = json.load(f)
     model = load_model(result_train_file)
     node_cnt = test_data.shape[1]
-    test_set = gnn.preprocessing.loader.ForecastDataset(test_data, window_size=args.window_size, horizon=args.horizon,
+    test_set = stdnn.preprocessing.loader.ForecastDataset(test_data, window_size=args.window_size, horizon=args.horizon,
                                                         normalize_method=args.norm_method,
                                                         norm_statistic=normalize_statistic)
     test_loader = torch.utils.data.DataLoader(test_set, batch_size=args.batch_size, drop_last=False,
@@ -59,7 +59,7 @@ def baseline_test(test_data, args, result_train_file):
     with open(os.path.join(result_train_file, 'norm_stat.json'), 'r') as f:
         normalize_statistic = json.load(f)
     model = load_model(result_train_file)
-    test_set = gnn.preprocessing.loader.ForecastDataset(test_data, window_size=args.window_size, horizon=args.horizon,
+    test_set = stdnn.preprocessing.loader.ForecastDataset(test_data, window_size=args.window_size, horizon=args.horizon,
                                                         normalize_method=args.norm_method)
     test_loader = torch.utils.data.DataLoader(test_set, batch_size=args.batch_size, drop_last=False,
                                               shuffle=False, num_workers=0)
@@ -109,8 +109,8 @@ def custom_test(test_data, args, result_train_file):
             plt.savefig(os.path.join('img', args.model + '_corr.png'), dpi=300, bbox_inches='tight')
 
     x, y = process_data(test_data, args.window_size, args.horizon)
-    scaler = gnn.preprocessing.loader.CustomStandardScaler(mean=x.mean(), std=x.std())
-    test_loader = gnn.preprocessing.loader.CustomSimpleDataLoader(scaler.transform(x), scaler.transform(y),
+    scaler = stdnn.preprocessing.loader.CustomStandardScaler(mean=x.mean(), std=x.std())
+    test_loader = stdnn.preprocessing.loader.CustomSimpleDataLoader(scaler.transform(x), scaler.transform(y),
                                                                   args.batch_size)
     performance_metrics = validate(model, args.model, test_loader, args.device, args.norm_method, normalize_statistic,
                                    args.node_cnt, args.window_size, args.horizon, scaler=scaler)

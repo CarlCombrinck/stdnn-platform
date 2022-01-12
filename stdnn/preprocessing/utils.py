@@ -1,6 +1,6 @@
 import numpy as np
 
-from gnn.utils import calculate_scaled_laplacian, symmetric_adjacency, asymmetric_adjacency, \
+from stdnn.utils import calculate_scaled_laplacian, symmetric_adjacency, asymmetric_adjacency, \
     calculate_normalized_laplacian, correlation_adjacency_matrix
 
 

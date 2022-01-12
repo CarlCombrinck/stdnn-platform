@@ -2,8 +2,8 @@ import numpy as np
 import torch
 import torch.utils.data
 
-from gnn.metrics.error import evaluate
-from gnn.utils import inverse_transform_
+from stdnn.metrics.error import evaluate
+from stdnn.utils import inverse_transform_
 
 
 def custom_inference(model, data_loader, device='cpu'):

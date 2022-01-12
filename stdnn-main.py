@@ -6,12 +6,12 @@ from datetime import datetime
 import numpy as np
 import torch
 
-import gnn.evaluation.test_
-import gnn.train
-import gnn.training.baseline
-from gnn.preprocessing.loader import load_dataset
-from gnn.preprocessing.utils import process_adjacency_matrix
-from gnn.utils import correlation_adjacency_matrix
+import stdnn.evaluation.test_
+import stdnn.train
+import stdnn.training.baseline
+from stdnn.preprocessing.loader import load_dataset
+from stdnn.preprocessing.utils import process_adjacency_matrix
+from stdnn.utils import correlation_adjacency_matrix
 
 
 def str2bool(v):
@@ -141,11 +141,11 @@ torch.manual_seed(0)
 if __name__ == '__main__':
     if args.train:
         if args.baseline:
-            _ = gnn.training.baseline.train(train_data, valid_data, args, baseline_train_file)
+            _ = stdnn.training.baseline.train(train_data, valid_data, args, baseline_train_file)
         if not args.baseline_only:
             try:
                 before_train = datetime.now().timestamp()
-                _ = gnn.train.train(train_data, valid_data, args, result_train_file)
+                _ = stdnn.train.train(train_data, valid_data, args, result_train_file)
                 after_train = datetime.now().timestamp()
                 hours, rem = divmod(after_train - before_train, 3600)
                 minutes, seconds = divmod(rem, 60)
@@ -155,13 +155,13 @@ if __name__ == '__main__':
                 print('Exiting Early')
     if args.evaluate:
         if args.baseline:
-            gnn.evaluation.test_.baseline_test(test_data, args, baseline_train_file)
+            stdnn.evaluation.test_.baseline_test(test_data, args, baseline_train_file)
         before_evaluation = datetime.now().timestamp()
         if not args.baseline_only:
             if args.model == 'StemGNN':
-                gnn.evaluation.test_.test(test_data, args, result_train_file)
+                stdnn.evaluation.test_.test(test_data, args, result_train_file)
             else:
-                gnn.evaluation.test_.custom_test(test_data, args, result_train_file)
+                stdnn.evaluation.test_.custom_test(test_data, args, result_train_file)
             after_evaluation = datetime.now().timestamp()
             hours, rem = divmod(after_evaluation - before_evaluation, 3600)
             minutes, seconds = divmod(rem, 60)

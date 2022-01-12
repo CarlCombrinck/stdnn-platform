@@ -8,14 +8,14 @@ import torch.nn as nn
 import torch.nn.functional as F
 import torch.utils.data
 
-import gnn.preprocessing.loader
-from gnn.evaluation.validation import validate
-from gnn.models.gwnet import GraphWaveNet
-from gnn.models.mtgnn import MTGNN
-from gnn.models.stemgnn import Model
-from gnn.preprocessing.utils import process_data
-from gnn.training.engine import Engine
-from gnn.utils import save_model
+import stdnn.preprocessing.loader
+from stdnn.evaluation.validation import validate
+from stdnn.models.gwnet import GraphWaveNet
+# from stdnn.models.mtgnn import MTGNN
+# from stdnn.models.stemgnn import Model
+from stdnn.preprocessing.utils import process_data
+from stdnn.training.engine import Engine
+from stdnn.utils import save_model
 
 
 def init_model(model_name, args):
@@ -33,25 +33,27 @@ def init_model(model_name, args):
     -------
     Union[Model, GraphWaveNet, MTGNN]
     """
-    if model_name == 'StemGNN':
-        return Model(args.node_cnt, 2, args.window_size, args.multi_layer, horizon=args.horizon)
-    elif model_name == 'GWN':
+    if model_name == 'GWN':
         return GraphWaveNet(device=args.device, node_cnt=args.node_cnt, dropout=args.dropout_rate,
                             supports=args.supports, gcn_bool=args.gcn_bool, adapt_adj=args.adapt_adj,
                             adj_init=args.adj_init, in_dim=args.in_dim, out_dim=args.horizon,
                             residual_channels=args.channels, dilation_channels=args.channels,
                             skip_channels=args.channels * 8, end_channels=args.channels * 16)
+    elif model_name == 'StemGNN':
+        # return Model(args.node_cnt, 2, args.window_size, args.multi_layer, horizon=args.horizon)
+        raise Exception("Model Not Currently Supported")
     else:
-        return MTGNN(args.gcn_bool, args.build_adj, args.gcn_depth, args.node_cnt,
-                     device=args.device, adj_matrix=args.adj_matrix,
-                     dropout=args.dropout_rate, subgraph_size=args.subgraph_size,
-                     node_dim=args.node_dim,
-                     dilation_exponential=args.dilation_exponential,
-                     conv_channels=args.conv_channels, residual_channels=args.residual_channels,
-                     skip_channels=args.skip_channels, end_channels=args.end_channels,
-                     seq_length=args.window_size, in_dim=args.in_dim, out_dim=args.horizon,
-                     layers=args.layers, propalpha=args.prop_alpha, tanhalpha=args.tanh_alpha,
-                     layer_norm_affline=True)
+        # return MTGNN(args.gcn_bool, args.build_adj, args.gcn_depth, args.node_cnt,
+        #              device=args.device, adj_matrix=args.adj_matrix,
+        #              dropout=args.dropout_rate, subgraph_size=args.subgraph_size,
+        #              node_dim=args.node_dim,
+        #              dilation_exponential=args.dilation_exponential,
+        #              conv_channels=args.conv_channels, residual_channels=args.residual_channels,
+        #              skip_channels=args.skip_channels, end_channels=args.end_channels,
+        #              seq_length=args.window_size, in_dim=args.in_dim, out_dim=args.horizon,
+        #              layers=args.layers, propalpha=args.prop_alpha, tanhalpha=args.tanh_alpha,
+        #              layer_norm_affline=True)
+        raise Exception("Model Not Currently Supported")
 
 
 def get_iterable_loader(model_name, loader):
@@ -119,11 +121,11 @@ def train(train_data, valid_data, args, result_file):
 
     if model_name == 'StemGNN':
 
-        train_set = gnn.preprocessing.loader.ForecastDataset(train_data, window_size=args.window_size,
+        train_set = stdnn.preprocessing.loader.ForecastDataset(train_data, window_size=args.window_size,
                                                              horizon=args.horizon,
                                                              normalize_method=args.norm_method,
                                                              norm_statistic=norm_statistic)
-        valid_set = gnn.preprocessing.loader.ForecastDataset(valid_data, window_size=args.window_size,
+        valid_set = stdnn.preprocessing.loader.ForecastDataset(valid_data, window_size=args.window_size,
                                                              horizon=args.horizon,
                                                              normalize_method=args.norm_method,
                                                              norm_statistic=norm_statistic)
@@ -135,11 +137,11 @@ def train(train_data, valid_data, args, result_file):
         x_train, y_train = process_data(train_data, args.window_size, args.horizon)
         x_valid, y_valid = process_data(valid_data, args.window_size, args.horizon)
 
-        scaler = gnn.preprocessing.loader.CustomStandardScaler(mean=x_train.mean(), std=x_train.std())
+        scaler = stdnn.preprocessing.loader.CustomStandardScaler(mean=x_train.mean(), std=x_train.std())
 
-        train_loader = gnn.preprocessing.loader.CustomSimpleDataLoader(scaler.transform(x_train),
+        train_loader = stdnn.preprocessing.loader.CustomSimpleDataLoader(scaler.transform(x_train),
                                                                        scaler.transform(y_train), args.batch_size)
-        valid_loader = gnn.preprocessing.loader.CustomSimpleDataLoader(scaler.transform(x_valid),
+        valid_loader = stdnn.preprocessing.loader.CustomSimpleDataLoader(scaler.transform(x_valid),
                                                                        scaler.transform(y_valid), args.batch_size)
 
     criterion = nn.MSELoss(reduction='mean').to(args.device)
