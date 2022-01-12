@@ -7,12 +7,11 @@ import numpy as np
 import torch
 
 import stdnn.evaluation.test_
-import stdnn.train
 import stdnn.training.baseline
 from stdnn.preprocessing.loader import load_dataset
 from stdnn.preprocessing.utils import process_adjacency_matrix
 from stdnn.utils import correlation_adjacency_matrix
-
+from stdnn.models.utils import get_model_class
 
 def str2bool(v):
     """
@@ -40,7 +39,8 @@ def str2bool(v):
 warnings.filterwarnings("ignore", category=UserWarning)
 
 parser = argparse.ArgumentParser()
-parser.add_argument('--model', type=str, default='StemGNN')
+parser.add_argument('--model', type=str, default='GWN')
+parser.add_argument('--model_module', type=str, default='gwnet')
 parser.add_argument('--baseline', type=str2bool, default=False)
 parser.add_argument('--baseline_only', type=str2bool, default=False)
 # StemGNN arguments
@@ -139,13 +139,23 @@ else:
 
 torch.manual_seed(0)
 if __name__ == '__main__':
+
+    Model = get_model_class(args.model_module, args.model)
+
+    # TODO refactor to use **args instead of passing individual args
+    model = Model(device=args.device, node_cnt=args.node_cnt, dropout=args.dropout_rate,
+                    supports=args.supports, gcn_bool=args.gcn_bool, adapt_adj=args.adapt_adj,
+                    adj_init=args.adj_init, in_dim=args.in_dim, out_dim=args.horizon,
+                    residual_channels=args.channels, dilation_channels=args.channels,
+                    skip_channels=args.channels * 8, end_channels=args.channels * 16)
+
     if args.train:
         if args.baseline:
             _ = stdnn.training.baseline.train(train_data, valid_data, args, baseline_train_file)
         if not args.baseline_only:
             try:
                 before_train = datetime.now().timestamp()
-                _ = stdnn.train.train(train_data, valid_data, args, result_train_file)
+                _ = model.train_model(train_data, valid_data, args, result_train_file)
                 after_train = datetime.now().timestamp()
                 hours, rem = divmod(after_train - before_train, 3600)
                 minutes, seconds = divmod(rem, 60)
@@ -158,10 +168,7 @@ if __name__ == '__main__':
             stdnn.evaluation.test_.baseline_test(test_data, args, baseline_train_file)
         before_evaluation = datetime.now().timestamp()
         if not args.baseline_only:
-            if args.model == 'StemGNN':
-                stdnn.evaluation.test_.test(test_data, args, result_train_file)
-            else:
-                stdnn.evaluation.test_.custom_test(test_data, args, result_train_file)
+            model.test_model(test_data, args, result_train_file)
             after_evaluation = datetime.now().timestamp()
             hours, rem = divmod(after_evaluation - before_evaluation, 3600)
             minutes, seconds = divmod(rem, 60)
