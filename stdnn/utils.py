@@ -6,33 +6,6 @@ import scipy.sparse as sp
 import torch
 from scipy.sparse import linalg
 
-
-def save_model(model, model_dir, epoch=None):
-    if model_dir is None:
-        return
-    if not os.path.exists(model_dir):
-        os.makedirs(model_dir)
-    epoch = str(epoch) if epoch else ''
-    file_name = os.path.join(model_dir, epoch + '.pt')
-    with open(file_name, 'wb') as f:
-        torch.save(model, f)
-
-
-def load_model(model_dir, epoch=None):
-    if not model_dir:
-        return
-    epoch = str(epoch) if epoch else ''
-    file_name = os.path.join(model_dir, epoch + '.pt')
-    print(file_name)
-    if not os.path.exists(model_dir):
-        os.makedirs(model_dir)
-    if not os.path.exists(file_name):
-        return
-    with open(file_name, 'rb') as f:
-        model = torch.load(f)
-    return model
-
-
 def transform_(data, normalize_method, norm_statistic=None):
     if normalize_method == 'min_max':
         if not norm_statistic:
