@@ -1,17 +1,18 @@
 import torch.nn as nn
 from abc import ABC, abstractmethod
 
-class STModel(nn.Module, ABC):
+class STModelManager(ABC):
     """
     Abstract spatial-temporal model from which all models must be derived
     """
-
     def __init__(self):
-        super().__init__()
-    
-    @abstractmethod
-    def forward(self, *input, **kwargs):
-        pass
+        self.model = None  
+
+    def set_model(self, model):
+        self.model = model
+
+    def has_model(self):
+        return self.model is None
 
     @abstractmethod
     def train_model(self, *args, **kwargs):
@@ -24,3 +25,4 @@ class STModel(nn.Module, ABC):
     @abstractmethod
     def test_model(self, *args, **kwargs):
         pass
+
