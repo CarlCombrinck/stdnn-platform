@@ -6,7 +6,7 @@ import json
 import os
 import time
 import stdnn
-from stdnn.models.STModel import STModel
+from stdnn.models.manager import STModelManager
 # TODO Remove once refactored
 from stdnn.preprocessing.utils import process_data
 # TODO Move to model utils, or to STModel
@@ -14,6 +14,10 @@ from stdnn.utils import save_model
 # TODO Have as property/class method
 from stdnn.metrics.error import evaluate
 from stdnn.utils import load_model
+# TODO Remove 
+import matplotlib.pyplot as plt
+import pandas as pd
+import seaborn as sn
 
 class NConv(nn.Module):
     def __init__(self):
@@ -58,11 +62,11 @@ class GCN(nn.Module):
         return h
 
 
-class GWN(STModel):
+class GraphWaveNet(nn.Module):
     def __init__(self, device, node_cnt, dropout=0.3, supports=None, gcn_bool=True, adapt_adj=True, adj_init=None,
                  in_dim=1, out_dim=12, residual_channels=32, dilation_channels=32, skip_channels=256, end_channels=512,
                  kernel_size=2, blocks=4, layers=2):
-        super().__init__()
+        super(GraphWaveNet, self).__init__()
         self.dropout = dropout
         self.blocks = blocks
         self.layers = layers
@@ -193,6 +197,11 @@ class GWN(STModel):
         x = self.end_conv_2(x)
         return x
 
+class GWNManager(STModelManager):
+
+    def __init__(self):
+        super().__init__()
+
     def train_model(self, train_data, valid_data, args, result_file):
         """
         Trains a graph neural network model and returns a set of validation performance metrics
@@ -212,7 +221,7 @@ class GWN(STModel):
         -------
         dict
         """
-        self.to(args.device)
+        self.model.to(args.device)
         if len(train_data) == 0:
             raise Exception('Cannot organize enough training data')
         if len(valid_data) == 0:
@@ -234,20 +243,19 @@ class GWN(STModel):
                 json.dump(norm_statistic, f)
 
         if args.optimizer == 'RMSProp':
-            optimizer = torch.optim.RMSprop(params=self.parameters(), lr=args.lr, eps=1e-08)
+            optimizer = torch.optim.RMSprop(params=self.model.parameters(), lr=args.lr, eps=1e-08)
         elif args.optimizer == 'SGD':
-            optimizer = torch.optim.SGD(params=self.parameters(), lr=args.lr, weight_decay=args.weight_decay)
+            optimizer = torch.optim.SGD(params=self.model.parameters(), lr=args.lr, weight_decay=args.weight_decay)
         elif args.optimizer == 'Adagrad':
-            optimizer = torch.optim.Adagrad(params=self.parameters(), lr=args.lr, weight_decay=args.weight_decay)
+            optimizer = torch.optim.Adagrad(params=self.model.parameters(), lr=args.lr, weight_decay=args.weight_decay)
         elif args.optimizer == 'Adadelta':
-            optimizer = torch.optim.Adadelta(params=self.parameters(), lr=args.lr, weight_decay=args.weight_decay)
+            optimizer = torch.optim.Adadelta(params=self.model.parameters(), lr=args.lr, weight_decay=args.weight_decay)
         else:
-            optimizer = torch.optim.Adam(params=self.parameters(), lr=args.lr, betas=(0.9, 0.999))
+            optimizer = torch.optim.Adam(params=self.model.parameters(), lr=args.lr, betas=(0.9, 0.999))
 
         lr_scheduler = torch.optim.lr_scheduler.ExponentialLR(optimizer=optimizer, gamma=args.decay_rate)
         scaler = None
-        
-        # TODO Move processing funtionality to class
+
         x_train, y_train = process_data(train_data, args.window_size, args.horizon)
         x_valid, y_valid = process_data(valid_data, args.window_size, args.horizon)
 
@@ -261,13 +269,13 @@ class GWN(STModel):
         criterion = nn.MSELoss(reduction='mean').to(args.device)
 
         total_params = 0
-        for name, parameter in self.named_parameters():
+        for name, parameter in self.model.named_parameters():
             if not parameter.requires_grad:
                 continue
             param = parameter.numel()
             total_params += param
         print(f"Total Trainable Parameters: {total_params}")
-        print("Model:", args.model)
+        print("Model:", type(self.model).__name__)
         print()
 
         best_validate_mae = np.inf
@@ -275,7 +283,7 @@ class GWN(STModel):
         performance_metrics = {}
         for epoch in range(args.epoch):
             epoch_start_time = time.time()
-            self.train()
+            self.model.train()
             loss_total = 0
             cnt = 0
             train_loader.shuffle()
@@ -283,8 +291,8 @@ class GWN(STModel):
                 inputs = torch.Tensor(inputs).to(args.device).transpose(1, 3)
                 target = torch.Tensor(target).to(args.device).transpose(1, 3)
                 inputs = F.pad(inputs, (1, 0, 0, 0))
-                self.zero_grad()
-                forecast = self(inputs).transpose(1, 3)
+                self.model.zero_grad()
+                forecast = self.model(inputs).transpose(1, 3)
                 forecast = torch.unsqueeze(forecast[:, 0, :, :], dim=1)
                 target = torch.unsqueeze(target[:, 0, :, :], dim=1)
                 loss = criterion(forecast, target)
@@ -292,10 +300,10 @@ class GWN(STModel):
                 loss.backward()
                 optimizer.step()
                 loss_total += float(loss)
-                
+
             print('Epoch {:2d} | Time: {:4.2f}s | Total Loss: {:5.4f}'.format(epoch + 1, (
                     time.time() - epoch_start_time), loss_total))
-            save_model(self, result_file, epoch)
+            save_model(self.model, result_file, epoch)
             if (epoch + 1) % args.exponential_decay_step == 0:
                 lr_scheduler.step()
             if (epoch + 1) % args.validate_freq == 0:
@@ -310,7 +318,7 @@ class GWN(STModel):
                 else:
                     validate_score_non_decrease_count += 1
                 if is_best:
-                    save_model(self, result_file)
+                    save_model(self.model, result_file)
             if args.early_stop and validate_score_non_decrease_count >= args.early_stop_step:
                 break
         return performance_metrics
@@ -332,14 +340,14 @@ class GWN(STModel):
         -------
         (torch.Tensor, torch.Tensor)
         """
-        self.eval()
+        self.model.eval()
         forecast_set = []
         target_set = []
         with torch.no_grad():
             for i, (inputs, target) in enumerate(data_loader.get_iterator()):
                 inputs = torch.Tensor(inputs).to(device).transpose(1, 3)
                 target = torch.Tensor(target).to(device).transpose(1, 3)[:, 0, :, :]
-                forecast_result = self(inputs).transpose(1, 3)
+                forecast_result = self.model(inputs).transpose(1, 3)
                 forecast_result = torch.unsqueeze(forecast_result[:, 0, :, :], dim=1)
                 forecast_set.append(forecast_result.squeeze())
                 target_set.append(target.detach().cpu().numpy())
@@ -409,8 +417,8 @@ class GWN(STModel):
             mape[1].append(score_norm[0])
             mae[1].append(score_norm[1])
             rmse[1].append(score_norm[2])
-        score = (np.mean(mape[0]), np.mean(mae[0]), np.mean(rmse[0]))
-        score_norm = (np.mean(mape[1]), np.mean(mae[1]), np.mean(rmse[1]))
+            score = (np.mean(mape[0]), np.mean(mae[0]), np.mean(rmse[0]))
+            score_norm = (np.mean(mape[1]), np.mean(mae[1]), np.mean(rmse[1]))
         print("NORM -  MAPE {:>8.4f}% | MAE {:>10.4f} | RMSE {:>10.4f}".format(score_norm[0] * 100, score_norm[1],
                                                                             score_norm[2]))
         print("RAW  -  MAPE {:>8.4f}% | MAE {:>10.4f} | RMSE {:>10.4f}".format(score[0] * 100, score[1], score[2]))
@@ -432,6 +440,21 @@ class GWN(STModel):
         """
         with open(os.path.join(result_train_file, 'norm_stat.json'), 'r') as f:
             normalize_statistic = json.load(f)
+        if not self.has_model():
+            self.model = load_model(result_train_file)
+
+        if self.model.final_adj:
+            adj = self.model.final_adj[0].detach().cpu().numpy()
+            sn.set(font_scale=0.5)
+            columns = pd.read_csv('data/' + args.dataset + '.csv').columns
+            df = pd.DataFrame(data=adj, columns=columns)
+            df.index = columns.values
+            df.to_csv(args.model + '_corr.csv')
+            sn.heatmap(df, annot=False, center=0, cmap='coolwarm', square=True)
+            if 'JSE' in args.dataset:
+                if not os.path.exists('img'):
+                    os.makedirs('img')
+                plt.savefig(os.path.join('img', args.model + '_corr.png'), dpi=300, bbox_inches='tight')
 
         x, y = process_data(test_data, args.window_size, args.horizon)
         scaler = stdnn.preprocessing.loader.CustomStandardScaler(mean=x.mean(), std=x.std())
