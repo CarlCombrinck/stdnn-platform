@@ -7,10 +7,10 @@ import torch
 import torch.nn as nn
 import torch.utils.data
 
-import gnn.preprocessing.loader
-from gnn.evaluation.validation import validate_baseline
-from gnn.models.lstm import LSTM
-from gnn.utils import save_model
+import stdnn.preprocessing.loader
+from stdnn.evaluation.validation import validate_baseline
+from stdnn.models.lstm import LSTM
+from stdnn.utils import save_model
 
 
 def train(train_data, valid_data, args, result_file):
@@ -67,10 +67,10 @@ def train(train_data, valid_data, args, result_file):
 
     lr_scheduler = torch.optim.lr_scheduler.ExponentialLR(optimizer=optimizer, gamma=args.decay_rate)
 
-    train_set = gnn.preprocessing.loader.ForecastDataset(train_data, window_size=args.window_size,
+    train_set = stdnn.preprocessing.loader.ForecastDataset(train_data, window_size=args.window_size,
                                                          horizon=args.horizon, normalize_method=args.norm_method,
                                                          norm_statistic=norm_statistic)
-    valid_set = gnn.preprocessing.loader.ForecastDataset(valid_data, window_size=args.window_size,
+    valid_set = stdnn.preprocessing.loader.ForecastDataset(valid_data, window_size=args.window_size,
                                                          horizon=args.horizon, normalize_method=args.norm_method,
                                                          norm_statistic=norm_statistic)
 
