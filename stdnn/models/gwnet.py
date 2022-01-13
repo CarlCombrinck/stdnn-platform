@@ -9,12 +9,9 @@ import stdnn
 from stdnn.models.manager import STModelManager
 # TODO Remove once refactored
 from stdnn.preprocessing.utils import process_data
-# TODO Move to model utils, or to STModel
-from stdnn.utils import save_model
 # TODO Have as property/class method
 from stdnn.metrics.error import evaluate
-from stdnn.utils import load_model
-# TODO Remove 
+# TODO Remove when moved to plotting
 import matplotlib.pyplot as plt
 import pandas as pd
 import seaborn as sn
@@ -275,7 +272,7 @@ class GWNManager(STModelManager):
             param = parameter.numel()
             total_params += param
         print(f"Total Trainable Parameters: {total_params}")
-        print("Model:", type(self.model).__name__)
+        print("Model: GWN")
         print()
 
         best_validate_mae = np.inf
@@ -303,7 +300,7 @@ class GWNManager(STModelManager):
 
             print('Epoch {:2d} | Time: {:4.2f}s | Total Loss: {:5.4f}'.format(epoch + 1, (
                     time.time() - epoch_start_time), loss_total))
-            save_model(self.model, result_file, epoch)
+            self.save_model(result_file, epoch)
             if (epoch + 1) % args.exponential_decay_step == 0:
                 lr_scheduler.step()
             if (epoch + 1) % args.validate_freq == 0:
@@ -318,7 +315,7 @@ class GWNManager(STModelManager):
                 else:
                     validate_score_non_decrease_count += 1
                 if is_best:
-                    save_model(self.model, result_file)
+                    self.save_model(result_file)
             if args.early_stop and validate_score_non_decrease_count >= args.early_stop_step:
                 break
         return performance_metrics
@@ -438,11 +435,10 @@ class GWNManager(STModelManager):
         result_train_file : str
             Directory to load trained model parameter files
         """
-        with open(os.path.join(result_train_file, 'norm_stat.json'), 'r') as f:
-            normalize_statistic = json.load(f)
         if not self.has_model():
-            self.model = load_model(result_train_file)
+            self.load_model(result_train_file)
 
+        # TODO Move to plotting/reporting
         if self.model.final_adj:
             adj = self.model.final_adj[0].detach().cpu().numpy()
             sn.set(font_scale=0.5)
