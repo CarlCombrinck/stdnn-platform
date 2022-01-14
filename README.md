@@ -20,7 +20,21 @@
 ## Installation
 
 ```
+make install
+```
+or
+```
 python3 -m venv venv
 source ./venv/bin/activate
 pip3 install -Ur requirements.txt
+```
+
+## Testing GWN Model
+```
+make test
+```
+or 
+```
+source ./venv/bin/activate
+python3 stdnn-main.py --model GWN --window_size 40 --horizon 10 --baseline True
 ```

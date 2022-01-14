@@ -1,5 +1,6 @@
 from importlib import import_module
 from importlib.util import find_spec
+from datetime import datetime
 
 class ClassNotFoundError(ImportError):
     """
@@ -7,6 +8,31 @@ class ClassNotFoundError(ImportError):
     """
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+
+def timed(operation_name):
+    """Parameterized decorator for timing a model operation (e.g. training/testing)
+
+    Parameters
+    ----------
+    operation_name : str
+        Name of the operation the function represents
+
+    Returns
+    -------
+    function
+        The decorator into which the operation is passed
+    """
+    def decorator(function):
+        def wrapper(self, *args, **kwargs):
+            start = datetime.now().timestamp()
+            output = function(self, *args, **kwargs)
+            end = datetime.now().timestamp()
+            hours, rem = divmod(end-start, 3600)
+            minutes, seconds = divmod(rem, 60)
+            print("{} Time: ""{:0>2}:{:0>2}:{:05.2f}".format(operation_name, int(hours), int(minutes), seconds))
+            return output
+        return wrapper
+    return decorator
 
 def get_model_class(module_name, model_name):
     """
