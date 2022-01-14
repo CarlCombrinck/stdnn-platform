@@ -8,19 +8,13 @@ import os
 import sys
 
 
-absolutepath = os.path.abspath(__file__)
-fileDirectory = os.path.dirname(absolutepath)
-# Navigate to Images directory
-newPath = os.path.join(fileDirectory, 'images')
-
-
 class Plotter:
     """
     Plotter is a class with static methods that allow a user to create plots and have these plots be saved to the reporting/images directory
     """
 
     @staticmethod
-    def plot_correlation_matrix(dataframe, seaborn_theme='white', figure_name="correlation_matrix", save_figure_format='png', cmap_diverging_palette_husl_colours=[150, 275]):
+    def plot_correlation_matrix(dataframe, filepath, seaborn_theme='white', figure_name="correlation_matrix", save_figure_format='png', cmap_diverging_palette_husl_colours=[150, 275]):
         """[summary]
 
         Parameters
@@ -44,11 +38,11 @@ class Plotter:
         fig, ax = plt.subplots()
         sns.heatmap(corr_matrix, mask=mask, cmap=cmap, vmax=.3, center=0,
                     square=True, linewidths=.5, cbar_kws={"shrink": .5}).set(title="Correlation Matrix")
-        plt.savefig(newPath + "\\"+figure_name + "." + save_figure_format)
+        plt.savefig(filepath + "\\"+figure_name + "." + save_figure_format)
         plt.clf()
 
     @staticmethod
-    def plot_training_vs_validaion_loss(dataframe, figure_name="training_vs_validation_loss", save_figure_format='png'):
+    def plot_training_vs_validaion_loss(dataframe, filepath, figure_name="training_vs_validation_loss", save_figure_format='png'):
         """[summary]
 
         Parameters
@@ -60,21 +54,20 @@ class Plotter:
         save_figure_format : str, optional
             [description], by default 'png'
         """
-        """dataframe.plot.line(x='epochs', y=['training_loss', 'validation_loss'])
-        plt.minorticks_on()
-        plt.xticks(list(plt.xticks()[0]) + [0.1])
-        plt.setp(visible = True)
-        plt.tick_params(axis='both', which='major', direction='out')
-        plt.title("Training vs Validation loss by number of epochs")
-        plt.ylabel("Accuracy")
-        plt.xlabel("# of Epochs")
-        plt.legend(['training_loss', 'validation_loss'], loc="upper right")"""
         fig, ax = plt.subplots()
         sns.lineplot(x='epochs', y='Accuracy', hue='Key',
-                     data=pd.melt(dataframe, 'epochs', value_name="Accuracy", var_name="Key"), legend= "auto")
+                     data=pd.melt(dataframe, 'epochs', value_name="Accuracy", var_name="Key"), legend="auto")
 
-        plt.savefig(newPath + "\\"+figure_name + "." + save_figure_format)
+        plt.savefig(filepath + "\\"+figure_name + "." + save_figure_format)
         plt.clf()
+
+# Filepath stuff
+
+
+absolutepath = os.path.abspath(__file__)
+fileDirectory = os.path.dirname(absolutepath)
+# Navigate to Images directory
+newPath = os.path.join(fileDirectory, 'images')
 
 
 # Generate a large random dataset - just here for testing purposes
@@ -89,5 +82,5 @@ df = pd.DataFrame(data=rs.normal(size=(50, 2)),
 rng = np.arange(start=1, stop=51)
 df['epochs'] = rng
 
-Plotter.plot_correlation_matrix(dataframe=d)
-Plotter.plot_training_vs_validaion_loss(dataframe=df)
+Plotter.plot_correlation_matrix(dataframe=d, filepath=newPath)
+Plotter.plot_training_vs_validaion_loss(dataframe=df, filepath=newPath)
