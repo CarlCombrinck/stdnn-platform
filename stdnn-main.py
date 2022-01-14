@@ -6,12 +6,11 @@ from datetime import datetime
 import numpy as np
 import torch
 
-import stdnn.evaluation.test_
-import stdnn.training.baseline
 from stdnn.preprocessing.loader import load_dataset
 from stdnn.preprocessing.utils import process_adjacency_matrix
-from stdnn.utils import correlation_adjacency_matrix
-from stdnn.models.utils import get_model_class
+
+from stdnn.models.gwnet import GraphWaveNet, GWNManager
+from stdnn.models.lstm import LSTM, LSTMManager
 
 def str2bool(v):
     """
@@ -39,8 +38,7 @@ def str2bool(v):
 warnings.filterwarnings("ignore", category=UserWarning)
 
 parser = argparse.ArgumentParser()
-parser.add_argument('--model', type=str, default='GWN')
-parser.add_argument('--model_module', type=str, default='gwnet')
+parser.add_argument('--model', type=str, default='StemGNN')
 parser.add_argument('--baseline', type=str2bool, default=False)
 parser.add_argument('--baseline_only', type=str2bool, default=False)
 # StemGNN arguments
@@ -116,22 +114,16 @@ train_data, valid_data, test_data = load_dataset(args.dataset, args.train_length
 args.node_cnt = train_data.shape[1]
 
 if args.adj_data:
-    if args.model == 'GWN':
-        adj_matrix = process_adjacency_matrix(os.path.join('data', args.dataset + '.csv'), args.adj_type)
-        args.supports = [torch.tensor(i).to(args.device) for i in adj_matrix]
-        if args.apt_only:
-            args.supports = None
+    adj_matrix = process_adjacency_matrix(os.path.join('data', args.dataset + '.csv'), args.adj_type)
+    args.supports = [torch.tensor(i).to(args.device) for i in adj_matrix]
+    if args.apt_only:
+        args.supports = None
+        args.adj_init = None
+    else:
+        if args.random_adj:
             args.adj_init = None
         else:
-            if args.random_adj:
-                args.adj_init = None
-            else:
-                args.adj_init = args.supports[0]
-
-    if args.model == 'MTGNN':
-        adj_matrix = correlation_adjacency_matrix(os.path.join('data', args.dataset + '.csv')).astype(np.float32)
-        adj_matrix = torch.tensor(adj_matrix) - torch.eye(args.node_cnt)
-        args.adj_matrix = adj_matrix.to(args.device)
+            args.adj_init = args.supports[0]
 else:
     args.adj_matrix = None
     args.adj_init = None
@@ -140,37 +132,32 @@ else:
 torch.manual_seed(0)
 if __name__ == '__main__':
 
-    Model = get_model_class(args.model_module, args.model)
+    # TODO refactor to use **args instead of passing individual args
+    torch_model_baseline = LSTM(input_size=args.window_size, hidden_layers=args.lstm_layers, output_size=args.horizon)
+    baseline_model_manager = LSTMManager()
+    baseline_model_manager.set_model(torch_model_baseline)
 
     # TODO refactor to use **args instead of passing individual args
-    model = Model(device=args.device, node_cnt=args.node_cnt, dropout=args.dropout_rate,
-                    supports=args.supports, gcn_bool=args.gcn_bool, adapt_adj=args.adapt_adj,
-                    adj_init=args.adj_init, in_dim=args.in_dim, out_dim=args.horizon,
-                    residual_channels=args.channels, dilation_channels=args.channels,
-                    skip_channels=args.channels * 8, end_channels=args.channels * 16)
+    torch_model = GraphWaveNet(device=args.device, node_cnt=args.node_cnt, dropout=args.dropout_rate,
+                            supports=args.supports, gcn_bool=args.gcn_bool, adapt_adj=args.adapt_adj,
+                            adj_init=args.adj_init, in_dim=args.in_dim, out_dim=args.horizon,
+                            residual_channels=args.channels, dilation_channels=args.channels,
+                            skip_channels=args.channels * 8, end_channels=args.channels * 16)
+    model_manager = GWNManager()
+    model_manager.set_model(torch_model)
 
     if args.train:
         if args.baseline:
-            _ = stdnn.training.baseline.train(train_data, valid_data, args, baseline_train_file)
+            _ = baseline_model_manager.train_model(train_data, valid_data, args, baseline_train_file)
         if not args.baseline_only:
             try:
-                before_train = datetime.now().timestamp()
-                _ = model.train_model(train_data, valid_data, args, result_train_file)
-                after_train = datetime.now().timestamp()
-                hours, rem = divmod(after_train - before_train, 3600)
-                minutes, seconds = divmod(rem, 60)
-                print("Train Time: ""{:0>2}:{:0>2}:{:05.2f}".format(int(hours), int(minutes), seconds))
+                _ = model_manager.train_model(train_data, valid_data, args, result_train_file)
             except KeyboardInterrupt:
                 print('-' * 99)
                 print('Exiting Early')
     if args.evaluate:
         if args.baseline:
-            stdnn.evaluation.test_.baseline_test(test_data, args, baseline_train_file)
-        before_evaluation = datetime.now().timestamp()
+            baseline_model_manager.test_model(test_data, args, baseline_train_file)
         if not args.baseline_only:
-            model.test_model(test_data, args, result_train_file)
-            after_evaluation = datetime.now().timestamp()
-            hours, rem = divmod(after_evaluation - before_evaluation, 3600)
-            minutes, seconds = divmod(rem, 60)
-            print("Evaluation Time: ""{:0>2}:{:0>2}:{:05.2f}".format(int(hours), int(minutes), seconds))
+            model_manager.test_model(test_data, args, result_train_file)
     print('done')
