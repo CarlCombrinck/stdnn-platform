@@ -7,6 +7,8 @@ import time
 import stdnn
 from stdnn.models.manager import STModelManager
 from stdnn.metrics.error import evaluate
+# TODO Move to another module (for decorators)
+from stdnn.models.utils import timed
 
 class LSTM(nn.Module):
     """
@@ -44,6 +46,7 @@ class LSTMManager(STModelManager):
     def __init__(self):
         super().__init__()
 
+    @timed(operation_name="Train")
     def train_model(self, train_data, valid_data, args, result_file):
         """
         Trains a LSTM model and returns a set of validation performance metrics
@@ -235,6 +238,7 @@ class LSTMManager(STModelManager):
 
         return dict(mae=score[1], mape=score[0], rmse=score[2])
 
+    @timed(operation_name="Evaluation")
     def test_model(self, test_data, args, result_train_file):
         """
         Evaluates a LSTM model and returns raw and normalized error metrics

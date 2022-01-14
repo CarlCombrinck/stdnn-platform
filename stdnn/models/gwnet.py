@@ -11,6 +11,8 @@ from stdnn.models.manager import STModelManager
 from stdnn.preprocessing.utils import process_data
 # TODO Have as property/class method
 from stdnn.metrics.error import evaluate
+# TODO Move to another module (for decorators)
+from stdnn.models.utils import timed
 # TODO Remove when moved to plotting
 import matplotlib.pyplot as plt
 import pandas as pd
@@ -199,6 +201,7 @@ class GWNManager(STModelManager):
     def __init__(self):
         super().__init__()
 
+    @timed(operation_name="Train")
     def train_model(self, train_data, valid_data, args, result_file):
         """
         Trains a graph neural network model and returns a set of validation performance metrics
@@ -421,6 +424,7 @@ class GWNManager(STModelManager):
         print("RAW  -  MAPE {:>8.4f}% | MAE {:>10.4f} | RMSE {:>10.4f}".format(score[0] * 100, score[1], score[2]))
         return dict(mae=score[1], mape=score[0], rmse=score[2])
 
+    @timed(operation_name="Evaluation")
     def test_model(self, test_data, args, result_train_file):
         """
         Evaluates a GWN or MTGNN model and returns raw and normalized error metrics
