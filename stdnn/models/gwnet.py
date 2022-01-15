@@ -323,7 +323,7 @@ class GWNManager(STModelManager):
                 break
         return performance_metrics
 
-    def custom_inference(self, data_loader, device='cpu'):
+    def _custom_inference(self, data_loader, device='cpu'):
         """
         Performs inference and returns a set of GWN or MTGNN model predictions
 
@@ -387,7 +387,7 @@ class GWNManager(STModelManager):
         -------
         dict
         """
-        forecast_norm, target_norm = self.custom_inference(data_loader, device)
+        forecast_norm, target_norm = self._custom_inference(data_loader, device)
         mae = ([], [])
         mape = ([], [])
         rmse = ([], [])
