@@ -463,4 +463,5 @@ class GWNManager(STModelManager):
         performance_metrics = self.validate_model(test_loader, args.device, args.norm_method, args.horizon, scaler=scaler)
         mae, mape, rmse = performance_metrics['mae'], performance_metrics['mape'], performance_metrics['rmse']
         print('Test Set Performance: MAPE: {:5.2f} | MAE: {:5.2f} | RMSE: {:5.2f}'.format(mape * 100, mae, rmse))
+        return performance_metrics
 
