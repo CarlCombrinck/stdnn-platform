@@ -5,6 +5,15 @@ import pandas as pd
 import scipy.sparse as sp
 import torch
 from scipy.sparse import linalg
+import json
+import os 
+
+# TODO Add experiment config specific functionality if necessary (e.g. resolve classes)
+def load_experiment_config(filepath):
+    if not os.path.exists(filepath):
+        raise FileNotFoundError(f"Could not locate experiment config file '{filepath}'")
+    with open(filepath, "r") as json_file:
+        return json.load(json_file)
 
 def transform_(data, normalize_method, norm_statistic=None):
     if normalize_method == 'min_max':
