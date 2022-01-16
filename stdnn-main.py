@@ -85,8 +85,6 @@ parser.add_argument('--lstm_node', type=int, default=0)
 
 # User argument configuration
 args = parser.parse_args()
-print(f'Training Configuration: {args}')
-print()
 result_train_file = os.path.join('output', args.model, args.dataset, str(args.window_size), str(args.horizon), 'train')
 baseline_train_file = os.path.join('output', 'lstm', args.dataset, str(args.window_size), str(args.horizon), 'train')
 if not os.path.exists(result_train_file):
@@ -121,10 +119,12 @@ def main():
     # Hyper parameter configuration
     cs = CS.ConfigurationSpace(seed=1234)
     lr = CSH.UniformFloatHyperparameter('lr', lower=1e-5, upper=1e-3, log=True, meta={"config" : "train"})
+    epch = CSH.UniformIntegerHyperparameter('epoch', lower=10, upper=30, log=False, meta={"config" : "train"})
+    cs.add_hyperparameter(epch)
     cs.add_hyperparameter(lr)
 
     # Experiment configuration
-    config = {
+    pipeline_config = {
         "model" : {
             "meta" : {
                 "type" : GraphWaveNet,
@@ -139,7 +139,7 @@ def main():
         },
         "train" : {
             "params": dict(
-                train_data=train_data, valid_data=valid_data, args=args, result_file=result_train_file
+                train_data=train_data, valid_data=valid_data, args=vars(args), result_file=result_train_file
             )
         },
         # TODO Currently included in train method (from Kialan's code - ask about this)
@@ -148,17 +148,21 @@ def main():
         # },
         "test" : {
             "params": dict(
-                test_data=test_data, args=args, result_train_file=result_train_file
+                test_data=test_data, args=vars(args), result_train_file=result_train_file
             )
-        },
-        "experiment" : {
-            # TODO Add back once configured
-            # "hyperparameters" : cs,
-            "runs" : 3
         }
     }
 
-    exp_config = ExperimentConfigManager(config)
+    experiment_config = {
+        "config_space" : cs,
+        "grid" : dict(
+            epoch=3,
+            lr=3
+        ),
+        "runs" : 3
+    }
+
+    exp_config = ExperimentConfigManager(pipeline_config, experiment_config)
     experiment_manager = ExperimentManager(exp_config)
 
     # Run experiment
