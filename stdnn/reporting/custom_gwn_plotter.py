@@ -9,7 +9,7 @@ import os
 import sys
 
 
-class CustomGNNPlotter(Plotter):
+class CustomGWNPlotter(Plotter):
 
     @staticmethod
     def plot_adaptive_adj_matrix(dataframe, filepath, seaborn_theme='white', figure_name="adaptive_adjacency_matrix", save_figure_format='png', cmap_diverging_palette_husl_colours=[150, 275]):

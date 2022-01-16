@@ -7,8 +7,8 @@ import matplotlib as mt
 import os
 import sys
 
-from experiment.results import Results
-from reporting.custom_gwn_plotter import CustomGNNPlotter
+from experiments.results import Results
+from reporting.custom_gwn_plotter import CustomGWNPlotter
 
 if __name__ == '__main__':
     df = pd.read_csv("stdnn\data\JSE_clean_truncated.csv")
@@ -24,7 +24,7 @@ if __name__ == '__main__':
     df = pd.read_csv("stdnn\data\JSE_clean_truncated.csv")
     df_ = pd.read_csv("stdnn\data\GWN_corr.csv")
 
-    CustomGNNPlotter.plot_correlation_matrix(
+    CustomGWNPlotter.plot_correlation_matrix(
         dataframe=df, filepath=newpath+"\\")
-    CustomGNNPlotter.plot_adaptive_adj_matrix(
+    CustomGWNPlotter.plot_adaptive_adj_matrix(
         dataframe=df_, filepath=newpath+"\\")

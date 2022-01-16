@@ -14,7 +14,7 @@ class Plotter:
     """
 
     @staticmethod
-    def plot_correlation_matrix(dataframe, filepath, seaborn_theme='white', figure_name="correlation_matrix", save_figure_format='png', cmap_diverging_palette_husl_colours=[150, 275]):
+    def plot_correlation_matrix(dataframe, seaborn_theme='white', figure_name="correlation_matrix", save_figure_format='png', cmap_diverging_palette_husl_colours=[150, 275]):
         """[summary]
 
         Parameters
@@ -30,7 +30,7 @@ class Plotter:
         cmap_diverging_palette_husl_colours : list, optional
             a float array containing the HUSL colours [h_neg, h_pos] for the extents of the heatmap of the correlation matrix, by default [240, 10]
         """
-        sns.set_theme(style=seaborn_theme, )
+        sns.set_theme(style=seaborn_theme)
         corr_matrix = dataframe.corr()
         cmap = sns.diverging_palette(
             cmap_diverging_palette_husl_colours[0], cmap_diverging_palette_husl_colours[1], as_cmap=True)
@@ -38,11 +38,37 @@ class Plotter:
         sns.heatmap(corr_matrix, cmap=cmap, center=0).set(
             title="Correlation Matrix")
         plt.tight_layout()
-        plt.savefig(filepath+"\\"+figure_name + "." + save_figure_format)
+        plt.savefig(figure_name + "." + save_figure_format)
         plt.clf()
 
     @staticmethod
-    def plot_training_vs_validaion_loss(dataframe, filepath, figure_name="training_vs_validation_loss", save_figure_format='png'):
+    def plot_figure(figure_name, x, y, dataframes_dict, save_figure_format='png'):
+        """[summary]
+
+        Parameters
+        ----------
+        figure_name : string
+            The filename for the figure created by this method
+        x : string
+            The column name for the x column in the dataframe 
+        y : string[]
+            An array of strings of the y-axis column names for each dataframe 
+        dataframes_dict : dictionary 
+            Dictionary with key-value pairs for each config: dataframe 
+        save_figure_format : str, optional
+            The file format (PNG, JPEG, etc) for the plot that will be saved to an external directory, by default 'png'
+        """
+        counter = 0
+        for key in dataframes_dict:
+            plt.plot(x=x, y=y[counter], data=dataframes_dict[key], label=key)
+            counter += 1
+        plt.legend(loc="upper right", title="key")
+        plt.tight_layout()
+        plt.savefig(save_figure_format)
+        plt.clf()
+
+    @staticmethod
+    def plot_training_vs_validaion_loss(dataframe, figure_name="training_vs_validation_loss", save_figure_format='png'):
         """[summary]
 
         Parameters
@@ -58,5 +84,5 @@ class Plotter:
         sns.lineplot(x='epochs', y='Accuracy', hue='Key',
                      data=pd.melt(dataframe, 'epochs', value_name="Accuracy", var_name="Key"), legend="auto")
 
-        plt.savefig(filepath + figure_name + "." + save_figure_format)
+        plt.savefig(figure_name + "." + save_figure_format)
         plt.clf()
