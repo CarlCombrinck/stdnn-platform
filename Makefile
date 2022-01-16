@@ -6,3 +6,6 @@ install:
 test:
 	./venv/bin/activate && \
 	python3 stdnn-main.py --model GWN --window_size 40 --horizon 10 --baseline True
+
+view-docs:
+	python3 -m pydoc -b
