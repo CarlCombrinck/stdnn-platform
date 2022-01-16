@@ -1,3 +1,5 @@
+from ConfigSpace.util import generate_grid
+
 class ExperimentConfig():
     """
     Class to represent and manage the parameters for running
@@ -33,12 +35,33 @@ class ExperimentConfigManager():
     """
     Class for managing the configuration of the experiments to be run
     """
-    def __init__(self, config):
-        self.raw_config = config
 
-    # TODO Refactor to yield next experiment configuration
-    def next_configuration(self):
-        return ExperimentConfig(self.raw_config)
+    def __init__(self, raw_pipeline_config, raw_exp_config):
+        self.raw_pipeline_config = raw_pipeline_config
+        self.raw_exp_config = raw_exp_config
+        self.config_space = self.raw_exp_config.get("config_space")
+        self._generate_grid()
+
+    def _generate_grid(self):
+        grid_dims = self.raw_exp_config.get("grid")
+        self.grid = generate_grid(self.config_space, grid_dims)
+
+    # TODO Move to utils?
+    @staticmethod
+    def _dictionary_update_deep(dictionary, key, value):
+        for k, v in dictionary.items():
+            if k == key:
+                dictionary[key] = value
+            elif isinstance(v, dict):
+                ExperimentConfigManager._dictionary_update_deep(v, key, value)
+
+    def configurations(self):
+        for cell in self.grid:
+            current_config = dict(self.raw_pipeline_config)
+            for param, value in cell.get_dictionary().items():
+                key = self.config_space.get_hyperparameter(param).meta.get("config")
+                ExperimentConfigManager._dictionary_update_deep(current_config.get(key), param, value)
+            yield ExperimentConfig(current_config)
 
 class Experiment():
     """
@@ -50,13 +73,16 @@ class Experiment():
         self.results = None
 
     # TODO Refactor to use results class/add explicit validation?
-    def run(self):
-        model = self.config.model_type(**self.config.get_model_params())
-        model_manager = self.config.model_manager()
-        model_manager.set_model(model)
-        train_results = model_manager.train_model(**self.config.get_training_params())
-        test_results = model_manager.test_model(**self.config.get_testing_params())
-        self.results = (train_results, test_results)
+    def run(self, repeat=1):
+        print(f"EXPERIMENT CONFIGURATION: \n{self.config.config}")
+        for _ in range(repeat):
+            model = self.config.model_type(**self.config.get_model_params())
+            model_manager = self.config.model_manager()
+            model_manager.set_model(model)
+            train_results = model_manager.train_model(**self.config.get_training_params())
+            test_results = model_manager.test_model(**self.config.get_testing_params())
+            # TODO Aggregate results
+            self.results = (train_results, test_results)
 
     def get_results(self):
         return self.results
@@ -68,11 +94,12 @@ class ExperimentManager():
     def __init__(self, config):
         self.config = config
 
-    # TODO Add loop over configurations and collate results
+    # TODO Use result objects
     # TODO Rerun experiments and aggregate results
     def run_experiments(self):
-        params = self.config.next_configuration()
-        experiment = Experiment(params)
-        experiment.run()
-        # TODO Add to result set
-        return experiment.get_results()
+        results = []
+        for config in self.config.configurations():
+            experiment = Experiment(config)
+            experiment.run()
+            results.append(experiment.get_results())
+        return results
