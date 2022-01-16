@@ -221,18 +221,18 @@ class GWNManager(STModelManager):
         -------
         dict
         """
-        self.model.to(args.device)
+        self.model.to(args.get("device"))
         if len(train_data) == 0:
             raise Exception('Cannot organize enough training data')
         if len(valid_data) == 0:
             raise Exception('Cannot organize enough validation data')
 
-        if args.norm_method == 'z_score':
+        if args.get("norm_method") == 'z_score':
             train_mean = np.mean(train_data, axis=0)
             train_std = np.std(train_data, axis=0)
             norm_statistic = {"mean": train_mean.tolist(), "std": train_std.tolist()}
 
-        elif args.norm_method == 'min_max':
+        elif args.get("norm_method") == 'min_max':
             train_min = np.min(train_data, axis=0)
             train_max = np.max(train_data, axis=0)
             norm_statistic = {"min": train_min.tolist(), "max": train_max.tolist()}
@@ -242,31 +242,31 @@ class GWNManager(STModelManager):
             with open(os.path.join(result_file, 'norm_stat.json'), 'w') as f:
                 json.dump(norm_statistic, f)
 
-        if args.optimizer == 'RMSProp':
-            optimizer = torch.optim.RMSprop(params=self.model.parameters(), lr=args.lr, eps=1e-08)
-        elif args.optimizer == 'SGD':
-            optimizer = torch.optim.SGD(params=self.model.parameters(), lr=args.lr, weight_decay=args.weight_decay)
-        elif args.optimizer == 'Adagrad':
-            optimizer = torch.optim.Adagrad(params=self.model.parameters(), lr=args.lr, weight_decay=args.weight_decay)
-        elif args.optimizer == 'Adadelta':
-            optimizer = torch.optim.Adadelta(params=self.model.parameters(), lr=args.lr, weight_decay=args.weight_decay)
+        if args.get("optimizer") == 'RMSProp':
+            optimizer = torch.optim.RMSprop(params=self.model.parameters(), lr=args.get("lr"), eps=1e-08)
+        elif args.get("optimizer") == 'SGD':
+            optimizer = torch.optim.SGD(params=self.model.parameters(), lr=args.get("lr"), weight_decay=args.get("weight_decay"))
+        elif args.get("optimizer") == 'Adagrad':
+            optimizer = torch.optim.Adagrad(params=self.model.parameters(), lr=args.get("lr"), weight_decay=args.get("weight_decay"))
+        elif args.get("optimizer") == 'Adadelta':
+            optimizer = torch.optim.Adadelta(params=self.model.parameters(), lr=args.get("lr"), weight_decay=args.get("weight_decay"))
         else:
-            optimizer = torch.optim.Adam(params=self.model.parameters(), lr=args.lr, betas=(0.9, 0.999))
+            optimizer = torch.optim.Adam(params=self.model.parameters(), lr=args.get("lr"), betas=(0.9, 0.999))
 
-        lr_scheduler = torch.optim.lr_scheduler.ExponentialLR(optimizer=optimizer, gamma=args.decay_rate)
+        lr_scheduler = torch.optim.lr_scheduler.ExponentialLR(optimizer=optimizer, gamma=args.get("decay_rate"))
         scaler = None
 
-        x_train, y_train = process_data(train_data, args.window_size, args.horizon)
-        x_valid, y_valid = process_data(valid_data, args.window_size, args.horizon)
+        x_train, y_train = process_data(train_data, args.get("window_size"), args.get("horizon"))
+        x_valid, y_valid = process_data(valid_data, args.get("window_size"), args.get("horizon"))
 
         scaler = stdnn.preprocessing.loader.CustomStandardScaler(mean=x_train.mean(), std=x_train.std())
 
         train_loader = stdnn.preprocessing.loader.CustomSimpleDataLoader(scaler.transform(x_train),
-                                                                    scaler.transform(y_train), args.batch_size)
+                                                                    scaler.transform(y_train), args.get("batch_size"))
         valid_loader = stdnn.preprocessing.loader.CustomSimpleDataLoader(scaler.transform(x_valid),
-                                                                    scaler.transform(y_valid), args.batch_size)
+                                                                    scaler.transform(y_valid), args.get("batch_size"))
 
-        criterion = nn.MSELoss(reduction='mean').to(args.device)
+        criterion = nn.MSELoss(reduction='mean').to(args.get("device"))
 
         total_params = 0
         for name, parameter in self.model.named_parameters():
@@ -281,15 +281,15 @@ class GWNManager(STModelManager):
         best_validate_mae = np.inf
         validate_score_non_decrease_count = 0
         performance_metrics = {}
-        for epoch in range(args.epoch):
+        for epoch in range(args.get("epoch")):
             epoch_start_time = time.time()
             self.model.train()
             loss_total = 0
             cnt = 0
             train_loader.shuffle()
             for i, (inputs, target) in enumerate(train_loader.get_iterator()):
-                inputs = torch.Tensor(inputs).to(args.device).transpose(1, 3)
-                target = torch.Tensor(target).to(args.device).transpose(1, 3)
+                inputs = torch.Tensor(inputs).to(args.get("device")).transpose(1, 3)
+                target = torch.Tensor(target).to(args.get("device")).transpose(1, 3)
                 inputs = F.pad(inputs, (1, 0, 0, 0))
                 self.model.zero_grad()
                 forecast = self.model(inputs).transpose(1, 3)
@@ -304,13 +304,13 @@ class GWNManager(STModelManager):
             print('Epoch {:2d} | Time: {:4.2f}s | Total Loss: {:5.4f}'.format(epoch + 1, (
                     time.time() - epoch_start_time), loss_total))
             self.save_model(result_file, epoch)
-            if (epoch + 1) % args.exponential_decay_step == 0:
+            if (epoch + 1) % args.get("exponential_decay_step") == 0:
                 lr_scheduler.step()
-            if (epoch + 1) % args.validate_freq == 0:
+            if (epoch + 1) % args.get("validate_freq") == 0:
                 is_best = False
                 print('------ VALIDATE ------')
                 performance_metrics = \
-                    self.validate_model(valid_loader, args.device, args.norm_method, args.horizon, scaler=scaler)
+                    self.validate_model(valid_loader, args.get("device"), args.get("norm_method"), args.get("horizon"), scaler=scaler)
                 if np.abs(best_validate_mae) > np.abs(performance_metrics['mae']):
                     best_validate_mae = performance_metrics['mae']
                     is_best = True
@@ -319,7 +319,7 @@ class GWNManager(STModelManager):
                     validate_score_non_decrease_count += 1
                 if is_best:
                     self.save_model(result_file)
-            if args.early_stop and validate_score_non_decrease_count >= args.early_stop_step:
+            if args.get("early_stop") and validate_score_non_decrease_count >= args.get("early_stop_step"):
                 break
         return performance_metrics
 
@@ -446,21 +446,21 @@ class GWNManager(STModelManager):
         if self.model.final_adj:
             adj = self.model.final_adj[0].detach().cpu().numpy()
             sn.set(font_scale=0.5)
-            columns = pd.read_csv('data/' + args.dataset + '.csv').columns
+            columns = pd.read_csv('data/' + args.get("dataset") + '.csv').columns
             df = pd.DataFrame(data=adj, columns=columns)
             df.index = columns.values
-            df.to_csv(args.model + '_corr.csv')
+            df.to_csv(args.get("model") + '_corr.csv')
             sn.heatmap(df, annot=False, center=0, cmap='coolwarm', square=True)
-            if 'JSE' in args.dataset:
+            if 'JSE' in args.get("dataset"):
                 if not os.path.exists('img'):
                     os.makedirs('img')
-                plt.savefig(os.path.join('img', args.model + '_corr.png'), dpi=300, bbox_inches='tight')
+                plt.savefig(os.path.join('img', args.get("model") + '_corr.png'), dpi=300, bbox_inches='tight')
 
-        x, y = process_data(test_data, args.window_size, args.horizon)
+        x, y = process_data(test_data, args.get("window_size"), args.get("horizon"))
         scaler = stdnn.preprocessing.loader.CustomStandardScaler(mean=x.mean(), std=x.std())
         test_loader = stdnn.preprocessing.loader.CustomSimpleDataLoader(scaler.transform(x), scaler.transform(y),
-                                                                    args.batch_size)
-        performance_metrics = self.validate_model(test_loader, args.device, args.norm_method, args.horizon, scaler=scaler)
+                                                                    args.get("batch_size"))
+        performance_metrics = self.validate_model(test_loader, args.get("device"), args.get("norm_method"), args.get("horizon"), scaler=scaler)
         mae, mape, rmse = performance_metrics['mae'], performance_metrics['mape'], performance_metrics['rmse']
         print('Test Set Performance: MAPE: {:5.2f} | MAE: {:5.2f} | RMSE: {:5.2f}'.format(mape * 100, mae, rmse))
         return performance_metrics
