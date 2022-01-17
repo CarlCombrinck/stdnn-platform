@@ -42,7 +42,7 @@ class Plotter:
         plt.clf()
 
     @staticmethod
-    def plot_figure(figure_name, x, y, dataframes_dict, save_figure_format='png'):
+    def plot_figure(figure_name, x, y, yerr, dataframes_dict, save_figure_format='png', **kwargs):
         """[summary]
 
         Parameters
@@ -58,20 +58,22 @@ class Plotter:
         save_figure_format : str, optional
             The file format (PNG, JPEG, etc) for the plot that will be saved to an external directory, by default 'png'
         """
-        counter = 0
-        for key in dataframes_dict:
-            plt.plot(x=x, y=y[counter], data=dataframes_dict[key], label=key)
-            counter += 1
+        for name, frame in dataframes_dict.items():
+            for y_value, y_std_dev in zip(y, yerr):
+                plt.errorbar(x, y_value, yerr=y_std_dev, data=frame, label=name, **kwargs)
+        plt.title(f"{', '.join(y)} vs {x}")
+        plt.xlabel(x)
+        plt.ylabel(", ".join(y))
         plt.legend(loc="upper right", title="key")
         plt.tight_layout()
-        plt.savefig(save_figure_format)
+        plt.savefig(f"{figure_name}.{save_figure_format}")
         plt.clf()
 
     @staticmethod
-    def plot_training_vs_validaion_loss(dataframe, figure_name="training_vs_validation_loss", save_figure_format='png'):
+    def plot_training_vs_validation_loss(dataframe, figure_name="training_vs_validation_loss", save_figure_format='png'):
         """[summary]
 
-        Parameters
+        Parameters  
         ----------
         dataframe : [type]
             [description]

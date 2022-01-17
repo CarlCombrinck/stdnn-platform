@@ -2,6 +2,7 @@ import stdnn.conf as settings
 from stdnn.models.lstm import LSTM, LSTMManager
 from stdnn.models.gwnet import GraphWaveNet, GWNManager
 from stdnn.experiments.experiment import ExperimentManager, ExperimentConfigManager
+from stdnn.reporting.custom_gwn_plotter import CustomGWNPlotter
 
 # TODO Move this functionality (some is model specific)
 from stdnn.preprocessing.loader import load_dataset
@@ -119,8 +120,8 @@ def main():
     # Hyper parameter configuration
     cs = CS.ConfigurationSpace(seed=1234)
     lr = CSH.UniformFloatHyperparameter('lr', lower=1e-5, upper=1e-3, log=True, meta={"config" : "train"})
-    epch = CSH.UniformIntegerHyperparameter('epoch', lower=10, upper=30, log=False, meta={"config" : "train"})
-    cs.add_hyperparameter(epch)
+    #epch = CSH.UniformIntegerHyperparameter('epoch', lower=10, upper=30, log=False, meta={"config" : "train"})
+    #cs.add_hyperparameter(epch)
     cs.add_hyperparameter(lr)
 
     # Experiment configuration
@@ -156,10 +157,10 @@ def main():
     experiment_config = {
         "config_space" : cs,
         "grid" : dict(
-            epoch=3,
+            #epoch=3,
             lr=3
         ),
-        "runs" : 3
+        "runs" : 2
     }
 
     exp_config = ExperimentConfigManager(pipeline_config, experiment_config)
@@ -168,8 +169,13 @@ def main():
     # Run experiment
     results = experiment_manager.run_experiments()
 
+    # Format results
+    results_to_plot = {
+        name: exp_result.get_dataframe("valid") for name, exp_result in results.get_results().items()
+    }
+
     # Plot results
-    print(results)
+    CustomGWNPlotter.plot_figure("TestFigure", x="epoch", y=["mape_mean"], yerr=["mape_std_dev"], dataframes_dict=results_to_plot, marker="o")
 
 if __name__ == '__main__':
     main()
