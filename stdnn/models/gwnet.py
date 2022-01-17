@@ -280,7 +280,7 @@ class GWNManager(STModelManager):
 
         best_validate_mae = np.inf
         validate_score_non_decrease_count = 0
-        performance_metrics = {}
+        valid_frame = pd.DataFrame(columns=["epoch", "mape", "mae", "rmse"])
         for epoch in range(args.get("epoch")):
             epoch_start_time = time.time()
             self.model.train()
@@ -311,6 +311,7 @@ class GWNManager(STModelManager):
                 print('------ VALIDATE ------')
                 performance_metrics = \
                     self.validate_model(valid_loader, args.get("device"), args.get("norm_method"), args.get("horizon"), scaler=scaler)
+                valid_frame = valid_frame.append({"epoch" : epoch, **performance_metrics}, ignore_index=True)
                 if np.abs(best_validate_mae) > np.abs(performance_metrics['mae']):
                     best_validate_mae = performance_metrics['mae']
                     is_best = True
@@ -321,7 +322,7 @@ class GWNManager(STModelManager):
                     self.save_model(result_file)
             if args.get("early_stop") and validate_score_non_decrease_count >= args.get("early_stop_step"):
                 break
-        return performance_metrics
+        return valid_frame
 
     def _custom_inference(self, data_loader, device='cpu'):
         """
@@ -443,25 +444,30 @@ class GWNManager(STModelManager):
             self.load_model(result_train_file)
 
         # TODO Move to plotting/reporting
-        if self.model.final_adj:
-            adj = self.model.final_adj[0].detach().cpu().numpy()
-            sn.set(font_scale=0.5)
-            columns = pd.read_csv('data/' + args.get("dataset") + '.csv').columns
-            df = pd.DataFrame(data=adj, columns=columns)
-            df.index = columns.values
-            df.to_csv(args.get("model") + '_corr.csv')
-            sn.heatmap(df, annot=False, center=0, cmap='coolwarm', square=True)
-            if 'JSE' in args.get("dataset"):
-                if not os.path.exists('img'):
-                    os.makedirs('img')
-                plt.savefig(os.path.join('img', args.get("model") + '_corr.png'), dpi=300, bbox_inches='tight')
+        # if self.model.final_adj:
+        #     adj = self.model.final_adj[0].detach().cpu().numpy()
+        #     sn.set(font_scale=0.5)
+        #     columns = pd.read_csv('data/' + args.get("dataset") + '.csv').columns
+        #     df = pd.DataFrame(data=adj, columns=columns)
+        #     df.index = columns.values
+        #     df.to_csv(args.get("model") + '_corr.csv')
+        #     sn.heatmap(df, annot=False, center=0, cmap='coolwarm', square=True)
+        #     if 'JSE' in args.get("dataset"):
+        #         if not os.path.exists('img'):
+        #             os.makedirs('img')
+        #         plt.savefig(os.path.join('img', args.get("model") + '_corr.png'), dpi=300, bbox_inches='tight')
 
         x, y = process_data(test_data, args.get("window_size"), args.get("horizon"))
         scaler = stdnn.preprocessing.loader.CustomStandardScaler(mean=x.mean(), std=x.std())
         test_loader = stdnn.preprocessing.loader.CustomSimpleDataLoader(scaler.transform(x), scaler.transform(y),
                                                                     args.get("batch_size"))
+        test_frame = pd.DataFrame(columns=["epoch", "mae", "mape", "rmse"])
         performance_metrics = self.validate_model(test_loader, args.get("device"), args.get("norm_method"), args.get("horizon"), scaler=scaler)
+
+        # TODO Remove epoch=1
+
+        test_frame = test_frame.append({"epoch" : 1, **performance_metrics}, ignore_index=True)
         mae, mape, rmse = performance_metrics['mae'], performance_metrics['mape'], performance_metrics['rmse']
         print('Test Set Performance: MAPE: {:5.2f} | MAE: {:5.2f} | RMSE: {:5.2f}'.format(mape * 100, mae, rmse))
-        return performance_metrics
+        return test_frame
 
