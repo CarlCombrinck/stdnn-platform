@@ -322,7 +322,7 @@ class GWNManager(STModelManager):
                     self.save_model(result_file)
             if args.get("early_stop") and validate_score_non_decrease_count >= args.get("early_stop_step"):
                 break
-        return valid_frame
+        return dict(valid=valid_frame)
 
     def _custom_inference(self, data_loader, device='cpu'):
         """
@@ -443,19 +443,15 @@ class GWNManager(STModelManager):
         if not self.has_model():
             self.load_model(result_train_file)
 
-        # TODO Move to plotting/reporting
-        # if self.model.final_adj:
-        #     adj = self.model.final_adj[0].detach().cpu().numpy()
-        #     sn.set(font_scale=0.5)
-        #     columns = pd.read_csv('data/' + args.get("dataset") + '.csv').columns
-        #     df = pd.DataFrame(data=adj, columns=columns)
-        #     df.index = columns.values
-        #     df.to_csv(args.get("model") + '_corr.csv')
-        #     sn.heatmap(df, annot=False, center=0, cmap='coolwarm', square=True)
-        #     if 'JSE' in args.get("dataset"):
-        #         if not os.path.exists('img'):
-        #             os.makedirs('img')
-        #         plt.savefig(os.path.join('img', args.get("model") + '_corr.png'), dpi=300, bbox_inches='tight')
+        results = {}
+
+        if self.model.final_adj:
+            adj = self.model.final_adj[0].detach().cpu().numpy()
+            columns = pd.read_csv('data/' + args.get("dataset") + '.csv').columns
+            df = pd.DataFrame(data=adj, columns=columns)
+            df.index = columns.values
+            df.to_csv(args.get("model") + '_corr.csv')
+            results["adj"] = df
 
         x, y = process_data(test_data, args.get("window_size"), args.get("horizon"))
         scaler = stdnn.preprocessing.loader.CustomStandardScaler(mean=x.mean(), std=x.std())
@@ -467,7 +463,8 @@ class GWNManager(STModelManager):
         # TODO Remove epoch=1
 
         test_frame = test_frame.append({"epoch" : 1, **performance_metrics}, ignore_index=True)
+        results["test"] = test_frame
         mae, mape, rmse = performance_metrics['mae'], performance_metrics['mape'], performance_metrics['rmse']
         print('Test Set Performance: MAPE: {:5.2f} | MAE: {:5.2f} | RMSE: {:5.2f}'.format(mape * 100, mae, rmse))
-        return test_frame
+        return results
 
