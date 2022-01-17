@@ -5,7 +5,7 @@ install:
 
 test:
 	./venv/bin/activate && \
-	python3 stdnn-main.py --model GWN --window_size 20 --horizon 20 --baseline True -epoch 5
+	python3 stdnn-main.py --model GWN --window_size 20 --horizon 20 --baseline True --epoch 5
 
 view-docs:
 	python3 -m pydoc -b
