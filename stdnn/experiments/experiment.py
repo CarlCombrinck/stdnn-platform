@@ -94,11 +94,11 @@ class Experiment():
             model = self.config.model_type(**self.config.get_model_params())
             model_manager = self.config.model_manager()
             model_manager.set_model(model)
-            valid_results_frame = model_manager.train_model(**self.config.get_training_params())
-            test_results_frame = model_manager.test_model(**self.config.get_testing_params())
-            result = RunResult(dict(
-                valid=valid_results_frame, test=test_results_frame
-            ))
+            train_results = model_manager.train_model(**self.config.get_training_params())
+            test_results = model_manager.test_model(**self.config.get_testing_params())
+            result = RunResult(
+                {**train_results, **test_results}    
+            )
             self.results.add_result(result)
 
     def get_results(self):
@@ -119,5 +119,5 @@ class ExperimentManager():
         for config in self.config.configurations():
             experiment = Experiment(config)
             experiment.run(repeat=self.config.get_runs())
-            results.add_result(experiment.get_results().aggregate(group_by="epoch"), key=config.get_label())
+            results.add_result(experiment.get_results().aggregate(group_by="epoch", which=["valid", "test"]), key=config.get_label())
         return results
