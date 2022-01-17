@@ -122,10 +122,13 @@ class RunResultSet(ResultSet):
 
     # TODO Generalize to apply any aggregation function(s) across each dataframe 
     # TODO Choice of which frames to aggregate?
-    def aggregate(self, group_by, columns=None):
+    def aggregate(self, group_by, columns=None, which=None):
         combined = self.combine()
         aggregated = ExperimentResult()
         for key, frame in combined.get_dataframes().items():
+            if key not in which:
+                aggregated.add_dataframe(frame, key)
+                continue
             grouped = frame.groupby(by=group_by)
             if columns is not None:
                 grouped = grouped[columns]
