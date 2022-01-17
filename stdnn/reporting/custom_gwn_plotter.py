@@ -42,5 +42,5 @@ class CustomGWNPlotter(Plotter):
         sns.heatmap(dataframe.iloc[::, 1::], cmap=cmap, annot=False, center=0,
                     square=True, linewidths=.5, cbar_kws={"shrink": .5}).set(title="Correlation Matrix")
         plt.tight_layout()
-        plt.savefig(filepath+figure_name + "." + save_figure_format)
+        plt.savefig(f"{figure_name}.{save_figure_format}")
         plt.clf()
