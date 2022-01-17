@@ -169,15 +169,18 @@ def main():
     # Run experiment
     results = experiment_manager.run_experiments()
 
-    print(results)
-
     # Format results
-    results_to_plot = {
+    validation_results = {
         name: exp_result.get_dataframe("valid") for name, exp_result in results.get_results().items()
     }
+    adj_matrix_results = {
+        name: exp_result.get_dataframe("adj") for name, exp_result in results.get_results().items()
+    }
+
+    print(adj_matrix_results)
 
     # Plot results
-    CustomGWNPlotter.plot_lines("TestFigure", x="epoch", y=["mape_mean"], std_error=["mape_std_dev"], dataframes_dict=results_to_plot, marker="o")
+    CustomGWNPlotter.plot_lines("TestFigure", x="epoch", y=["mape_mean"], std_error=["mape_std_dev"], dataframes_dict=validation_results, marker="o")
 
 if __name__ == '__main__':
     main()
