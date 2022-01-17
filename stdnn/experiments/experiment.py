@@ -1,4 +1,11 @@
+from stdnn.experiments.results import (
+    RunResult, 
+    RunResultSet,
+    ExperimentResultSet
+)
 from ConfigSpace.util import generate_grid
+
+# TODO Deep copies
 
 class ExperimentConfig():
     """
@@ -6,8 +13,9 @@ class ExperimentConfig():
     an experiment (a single pass through the ML pipeline)
     """
 
-    def __init__(self, config):
+    def __init__(self, config, label):
         self.config = config
+        self.label = label
     
     @property
     def model_type(self):
@@ -16,6 +24,9 @@ class ExperimentConfig():
     @property
     def model_manager(self):
         return self.config.get("model").get("meta").get("manager")
+
+    def get_label(self):
+        return self.label
 
     def get_model_params(self):
         return self.config.get("model").get("params")
@@ -46,6 +57,9 @@ class ExperimentConfigManager():
         grid_dims = self.raw_exp_config.get("grid")
         self.grid = generate_grid(self.config_space, grid_dims)
 
+    def get_runs(self):
+        return self.raw_exp_config.get("runs")
+
     # TODO Move to utils?
     @staticmethod
     def _dictionary_update_deep(dictionary, key, value):
@@ -58,10 +72,12 @@ class ExperimentConfigManager():
     def configurations(self):
         for cell in self.grid:
             current_config = dict(self.raw_pipeline_config)
+            label = ""
             for param, value in cell.get_dictionary().items():
                 key = self.config_space.get_hyperparameter(param).meta.get("config")
                 ExperimentConfigManager._dictionary_update_deep(current_config.get(key), param, value)
-            yield ExperimentConfig(current_config)
+                label += f"{param}={value}"
+            yield ExperimentConfig(current_config, label)
 
 class Experiment():
     """
@@ -70,19 +86,20 @@ class Experiment():
     """
     def __init__(self, config):
         self.config = config
-        self.results = None
+        self.results = RunResultSet()
 
     # TODO Refactor to use results class/add explicit validation?
     def run(self, repeat=1):
-        print(f"EXPERIMENT CONFIGURATION: \n{self.config.config}")
         for _ in range(repeat):
             model = self.config.model_type(**self.config.get_model_params())
             model_manager = self.config.model_manager()
             model_manager.set_model(model)
-            train_results = model_manager.train_model(**self.config.get_training_params())
-            test_results = model_manager.test_model(**self.config.get_testing_params())
-            # TODO Aggregate results
-            self.results = (train_results, test_results)
+            valid_results_frame = model_manager.train_model(**self.config.get_training_params())
+            test_results_frame = model_manager.test_model(**self.config.get_testing_params())
+            result = RunResult(dict(
+                valid=valid_results_frame, test=test_results_frame
+            ))
+            self.results.add_result(result)
 
     def get_results(self):
         return self.results
@@ -96,10 +113,11 @@ class ExperimentManager():
 
     # TODO Use result objects
     # TODO Rerun experiments and aggregate results
+    # TODO Make abstract?
     def run_experiments(self):
-        results = []
+        results = ExperimentResultSet()
         for config in self.config.configurations():
             experiment = Experiment(config)
-            experiment.run()
-            results.append(experiment.get_results())
+            experiment.run(repeat=self.config.get_runs())
+            results.add_result(experiment.get_results().aggregate(group_by="epoch"), key=config.get_label())
         return results
