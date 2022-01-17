@@ -35,13 +35,14 @@ class Plotter:
         cmap = sns.diverging_palette(
             cmap_diverging_palette_husl_colours[0], cmap_diverging_palette_husl_colours[1], as_cmap=True)
         fig, ax = plt.subplots()
-        sns.heatmap(corr_matrix, cmap=cmap, center=0).set(title="Correlation Matrix")
+        sns.heatmap(corr_matrix, cmap=cmap, center=0).set(
+            title="Correlation Matrix")
         plt.tight_layout()
         plt.savefig(f"{figure_name}.{save_figure_format}")
         plt.clf()
 
     @staticmethod
-    def plot_lines(figure_name, x, y, dataframes_dict , std_error = None, save_figure_format='png', **kwargs):
+    def plot_lines(figure_name, x, y, dataframes_dict, std_error=None, save_figure_format='png', **kwargs):
         """[summary]
 
         Parameters
@@ -58,12 +59,13 @@ class Plotter:
             The file format (PNG, JPEG, etc) for the plot that will be saved to an external directory, by default 'png'
         """
         for name, frame in dataframes_dict.items():
-            if len(std_error) is None:
+            if std_error is None:
                 for y_value in y:
-                    plt.plot(x, y_value, data = frame, label = f"{name}-{y_value}")
+                    plt.plot(x, y_value, data=frame, label=f"{name}-{y_value}")
             elif len(y) == len(std_error):
                 for y_value, y_std_dev in zip(y, std_error):
-                    plt.errorbar(x, y_value, yerr=y_std_dev, data=frame, label=name, **kwargs)
+                    plt.errorbar(x, y_value, yerr=y_std_dev,
+                                 data=frame, label=name, **kwargs)
         plt.title(f"{', '.join(y)} vs {x}")
         plt.xlabel(x)
         plt.ylabel(", ".join(y))

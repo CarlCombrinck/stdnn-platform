@@ -1,12 +1,9 @@
-from string import ascii_letters
 from stdnn.reporting.plotter import Plotter
 import numpy as np
 import pandas as pd
 import seaborn as sns
 import matplotlib.pyplot as plt
-import matplotlib as mt
-import os
-import sys
+import networkx as nx
 
 
 class CustomGWNPlotter(Plotter):
@@ -42,5 +39,26 @@ class CustomGWNPlotter(Plotter):
         sns.heatmap(dataframe.iloc[::, 1::], cmap=cmap, annot=False, center=0,
                     square=True, linewidths=.5, cbar_kws={"shrink": .5}).set(title="Correlation Matrix")
         plt.tight_layout()
-        plt.savefig(filepath+figure_name + "." + save_figure_format)
+        plt.savefig(f"{figure_name}.{save_figure_format}")
         plt.clf()
+
+    def plot_network(dataframe, n = 5):
+        corr = dataframe.corr()
+        v_corr = corr.values
+        graph = nx.Graph()
+        edges = {}
+
+        for i, a in enumerate(v_corr):
+            idx = np.argpartition(np.delete(a, i), -n)[-n:]
+            edges[corr.columns[i]] = \
+                np.delete(corr.columns[idx].values, np.where(corr.columns[idx].values == corr.columns[i]))
+
+        for k, v in edges.items():
+            for n_ in v:
+                graph.add_edge(k, n_)
+                for e in edges[n_]:
+                    if graph.has_edge(k, e) or k == e:
+                        continue
+                    graph.add_edge(k, e)
+        
+        nx.draw(graph)
