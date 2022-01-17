@@ -177,7 +177,7 @@ def main():
     }
 
     # Plot results
-    CustomGWNPlotter.plot_figure("TestFigure", x="epoch", y=["mape_mean"], yerr=["mape_std_dev"], dataframes_dict=results_to_plot, marker="o")
+    CustomGWNPlotter.plot_lines("TestFigure", x="epoch", y=["mape_mean"], std_error=["mape_std_dev"], dataframes_dict=results_to_plot, marker="o")
 
 if __name__ == '__main__':
     main()
