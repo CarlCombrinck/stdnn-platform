@@ -1,5 +1,5 @@
 from string import ascii_letters
-from reporting.plotter import Plotter
+from stdnn.reporting.plotter import Plotter
 import numpy as np
 import pandas as pd
 import seaborn as sns
