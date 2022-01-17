@@ -158,7 +158,7 @@ def main():
         "config_space" : cs,
         "grid" : dict(
             #epoch=3,
-            lr=3
+            lr=2
         ),
         "runs" : 2
     }
@@ -168,6 +168,8 @@ def main():
 
     # Run experiment
     results = experiment_manager.run_experiments()
+
+    print(results)
 
     # Format results
     results_to_plot = {
