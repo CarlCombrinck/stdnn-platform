@@ -7,9 +7,17 @@ import networkx as nx
 
 
 class CustomGWNPlotter(Plotter):
+    """
+    Static class for Custom Plotter for GraphWaveNet data. This class allows the user to use existing methods (or add their own) to plot various GWN relevant figures
+
+    Parameters
+    ----------
+    Plotter : 
+        The parent class of this Custom Plotter class
+    """
 
     @staticmethod
-    def plot_adaptive_adj_matrix(dataframe, filepath, seaborn_theme='white', figure_name="adaptive_adjacency_matrix", save_figure_format='png', cmap_diverging_palette_husl_colours=[150, 275]):
+    def plot_adaptive_adj_matrix(dataframe, seaborn_theme='white', figure_name="adaptive_adjacency_matrix", save_figure_format='png', cmap_diverging_palette_husl_colours=[150, 275]):
         """[summary]
 
         Parameters
@@ -36,13 +44,15 @@ class CustomGWNPlotter(Plotter):
         columns = pd.read_csv("stdnn\data\JSE_clean_truncated.csv").columns
         dataframe.index = columns.values
 
-        sns.heatmap(dataframe.iloc[::, 1::], cmap=cmap, annot=False, center=0,
-                    square=True, linewidths=.5, cbar_kws={"shrink": .5}).set(title="Correlation Matrix")
-        plt.tight_layout()
-        plt.savefig(f"{figure_name}.{save_figure_format}")
-        plt.clf()
+        for key, value in dataframe.itmes():
 
-    def plot_network(dataframe, n = 5):
+            sns.heatmap(dataframe.iloc[::, 1::], cmap=cmap, annot=False, center=0,
+                        square=True, linewidths=.5, cbar_kws={"shrink": .5}).set(title=f"Adaptive Ad Matrix")
+            plt.tight_layout()
+            plt.savefig(f"{figure_name}.{save_figure_format}")
+            plt.clf()
+
+    def plot_network(dataframe, n=5):
         corr = dataframe.corr()
         v_corr = corr.values
         graph = nx.Graph()
@@ -51,7 +61,8 @@ class CustomGWNPlotter(Plotter):
         for i, a in enumerate(v_corr):
             idx = np.argpartition(np.delete(a, i), -n)[-n:]
             edges[corr.columns[i]] = \
-                np.delete(corr.columns[idx].values, np.where(corr.columns[idx].values == corr.columns[i]))
+                np.delete(corr.columns[idx].values, np.where(
+                    corr.columns[idx].values == corr.columns[i]))
 
         for k, v in edges.items():
             for n_ in v:
@@ -60,5 +71,5 @@ class CustomGWNPlotter(Plotter):
                     if graph.has_edge(k, e) or k == e:
                         continue
                     graph.add_edge(k, e)
-        
+
         nx.draw(graph)

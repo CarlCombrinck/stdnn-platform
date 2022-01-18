@@ -16,6 +16,10 @@ import ConfigSpace as CS
 import ConfigSpace.hyperparameters as CSH
 
 import torch
+import pandas as pd
+
+import ast
+
 
 def str2bool(v):
     """
@@ -69,7 +73,8 @@ parser.add_argument('--validate_freq', type=int, default=1)
 # GWN arguments
 parser.add_argument('--adj_data', type=str2bool, default=False)
 parser.add_argument('--adj_type', type=str, default='double_transition')
-parser.add_argument('--device', type=str, default=('cuda' if torch.cuda.is_available() else 'cpu'))
+parser.add_argument('--device', type=str,
+                    default=('cuda' if torch.cuda.is_available() else 'cpu'))
 parser.add_argument('--dropout_rate', type=float, default=0.5)
 parser.add_argument('--gcn_bool', type=str2bool, default=True)
 parser.add_argument('--horizon', type=int, default=5)
@@ -86,18 +91,22 @@ parser.add_argument('--lstm_node', type=int, default=0)
 
 # User argument configuration
 args = parser.parse_args()
-result_train_file = os.path.join('output', args.model, args.dataset, str(args.window_size), str(args.horizon), 'train')
-baseline_train_file = os.path.join('output', 'lstm', args.dataset, str(args.window_size), str(args.horizon), 'train')
+result_train_file = os.path.join('output', args.model, args.dataset, str(
+    args.window_size), str(args.horizon), 'train')
+baseline_train_file = os.path.join('output', 'lstm', args.dataset, str(
+    args.window_size), str(args.horizon), 'train')
 if not os.path.exists(result_train_file):
     os.makedirs(result_train_file)
 if not os.path.exists(baseline_train_file):
     os.makedirs(baseline_train_file)
 
-train_data, valid_data, test_data = load_dataset(args.dataset, args.train_length, args.valid_length, args.test_length)
+train_data, valid_data, test_data = load_dataset(
+    args.dataset, args.train_length, args.valid_length, args.test_length)
 args.node_cnt = train_data.shape[1]
 
 if args.adj_data:
-    adj_matrix = process_adjacency_matrix(os.path.join('data', args.dataset + '.csv'), args.adj_type)
+    adj_matrix = process_adjacency_matrix(os.path.join(
+        'data', args.dataset + '.csv'), args.adj_type)
     args.supports = [torch.tensor(i).to(args.device) for i in adj_matrix]
     if args.apt_only:
         args.supports = None
@@ -112,6 +121,7 @@ else:
     args.adj_init = None
     args.supports = None
 
+
 def main():
     # User settings
     #settings.register_model(LSTM, LSTMManager)
@@ -119,26 +129,27 @@ def main():
 
     # Hyper parameter configuration
     cs = CS.ConfigurationSpace(seed=1234)
-    lr = CSH.UniformFloatHyperparameter('lr', lower=1e-5, upper=1e-3, log=True, meta={"config" : "train"})
+    lr = CSH.UniformFloatHyperparameter(
+        'lr', lower=1e-5, upper=1e-3, log=True, meta={"config": "train"})
     #epch = CSH.UniformIntegerHyperparameter('epoch', lower=10, upper=30, log=False, meta={"config" : "train"})
-    #cs.add_hyperparameter(epch)
+    # cs.add_hyperparameter(epch)
     cs.add_hyperparameter(lr)
 
     # Experiment configuration
     pipeline_config = {
-        "model" : {
-            "meta" : {
-                "type" : GraphWaveNet,
-                "manager" : GWNManager
+        "model": {
+            "meta": {
+                "type": GraphWaveNet,
+                "manager": GWNManager
             },
             "params": dict(device=args.device, node_cnt=args.node_cnt, dropout=args.dropout_rate,
-                supports=args.supports, gcn_bool=args.gcn_bool, adapt_adj=args.adapt_adj,
-                adj_init=args.adj_init, in_dim=args.in_dim, out_dim=args.horizon,
-                residual_channels=args.channels, dilation_channels=args.channels,
-                skip_channels=args.channels * 8, end_channels=args.channels * 16
-            )
+                           supports=args.supports, gcn_bool=args.gcn_bool, adapt_adj=args.adapt_adj,
+                           adj_init=args.adj_init, in_dim=args.in_dim, out_dim=args.horizon,
+                           residual_channels=args.channels, dilation_channels=args.channels,
+                           skip_channels=args.channels * 8, end_channels=args.channels * 16
+                           )
         },
-        "train" : {
+        "train": {
             "params": dict(
                 train_data=train_data, valid_data=valid_data, args=vars(args), result_file=result_train_file
             )
@@ -147,7 +158,7 @@ def main():
         # "validate" : {
         #     "loader" : ...
         # },
-        "test" : {
+        "test": {
             "params": dict(
                 test_data=test_data, args=vars(args), result_train_file=result_train_file
             )
@@ -155,12 +166,12 @@ def main():
     }
 
     experiment_config = {
-        "config_space" : cs,
-        "grid" : dict(
-            #epoch=3,
+        "config_space": cs,
+        "grid": dict(
+            # epoch=3,
             lr=2
         ),
-        "runs" : 2
+        "runs": 2
     }
 
     exp_config = ExperimentConfigManager(pipeline_config, experiment_config)
@@ -177,10 +188,13 @@ def main():
         name: exp_result.get_dataframe("adj") for name, exp_result in results.get_results().items()
     }
 
-    print(adj_matrix_results)
+    # Output adj matrix data to a csv for easier retrieval
+    adj_matrix_results.to_csv("stdnn\\adjmatdata.csv")
 
     # Plot results
-    CustomGWNPlotter.plot_lines("TestFigure", x="epoch", y=["mape_mean"], std_error=["mape_std_dev"], dataframes_dict=validation_results, marker="o")
+    CustomGWNPlotter.plot_lines("TestFigure", x="epoch", y=["mape_mean"], std_error=[
+                                "mape_std_dev"], dataframes_dict=validation_results, marker="o")
+
 
 if __name__ == '__main__':
     main()
