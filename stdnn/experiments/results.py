@@ -1,7 +1,5 @@
 import pandas as pd
 
-# TODO Deep copies
-
 class Result():
     """
     Class for storing and managing results (a dictionary of related DataFrames)
