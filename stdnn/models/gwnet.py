@@ -457,12 +457,9 @@ class GWNManager(STModelManager):
         scaler = stdnn.preprocessing.loader.CustomStandardScaler(mean=x.mean(), std=x.std())
         test_loader = stdnn.preprocessing.loader.CustomSimpleDataLoader(scaler.transform(x), scaler.transform(y),
                                                                     args.get("batch_size"))
-        test_frame = pd.DataFrame(columns=["epoch", "mae", "mape", "rmse"])
+        test_frame = pd.DataFrame(columns=["mae", "mape", "rmse"])
         performance_metrics = self.validate_model(test_loader, args.get("device"), args.get("norm_method"), args.get("horizon"), scaler=scaler)
-
-        # TODO Remove epoch=1
-
-        test_frame = test_frame.append({"epoch" : 1, **performance_metrics}, ignore_index=True)
+        test_frame = test_frame.append(performance_metrics, ignore_index=True)
         results["test"] = test_frame
         mae, mape, rmse = performance_metrics['mae'], performance_metrics['mape'], performance_metrics['rmse']
         print('Test Set Performance: MAPE: {:5.2f} | MAE: {:5.2f} | RMSE: {:5.2f}'.format(mape * 100, mae, rmse))
