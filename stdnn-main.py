@@ -19,6 +19,7 @@ import torch
 import pandas as pd
 
 import ast
+import pickle
 
 
 def str2bool(v):
@@ -174,21 +175,39 @@ def main():
         "runs": 2
     }
 
-    exp_config = ExperimentConfigManager(pipeline_config, experiment_config)
-    experiment_manager = ExperimentManager(exp_config)
+    # TODO Remove flags and pickling (just for temporary use)
+    RUN_EXPERIMENTS = False
 
-    # Run experiment
-    raw_results = experiment_manager.run_experiments()
+    if RUN_EXPERIMENTS:
 
-    # Format results
-    validation_results = {
-        label : result.aggregate(group_by="epoch", which=["valid"], join=True).get_dataframes() 
-        for label, result in raw_results.get_results().items()
-    }
-    adj_matrix_results = {
-        label : result.aggregate(group_by="index", which=["adj"], join=False).get_dataframes() 
-        for label, result in raw_results.get_results().items()
-    }
+        exp_config = ExperimentConfigManager(pipeline_config, experiment_config)
+        experiment_manager = ExperimentManager(exp_config)
+
+        # Run experiment
+        raw_results = experiment_manager.run_experiments()
+
+        # Format results
+        validation_results = {
+            label : result.aggregate(group_by="epoch", which=["valid"], join=True).get_dataframes() 
+            for label, result in raw_results.get_results().items()
+        }
+        adj_matrix_results = {
+            label : result.aggregate(group_by="index", which=["adj"], join=False).get_dataframes() 
+            for label, result in raw_results.get_results().items()
+        }
+
+        # TODO Move pickling to object classes
+        with open('validation_results.pickle', 'wb') as f:
+            pickle.dump(validation_results, f)
+
+        with open('adj_matrix_results.pickle', 'wb') as f:
+            pickle.dump(adj_matrix_results, f)
+
+    else:
+        with open('validation_results.pickle', 'rb') as f:
+            validation_results = pickle.load(f)
+        with open('adj_matrix_results.pickle', 'rb') as f:
+            adj_matrix_results = pickle.load(f)
 
     print("VALIDATION RESULTS", validation_results, sep="\n")
     print("MATRIX RESULTS", adj_matrix_results, sep="\n")
