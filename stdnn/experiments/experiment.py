@@ -3,6 +3,7 @@ from stdnn.experiments.results import (
     RunResultSet,
     ExperimentResultSet
 )
+from stdnn.experiments.utils import dictionary_update_deep
 from ConfigSpace.util import generate_grid
 
 class ExperimentConfig():
@@ -129,27 +130,6 @@ class ExperimentConfigManager():
         """
         return self.raw_exp_config.get("runs")
 
-    # TODO Move to utils?
-    @staticmethod
-    def _dictionary_update_deep(dictionary, key, value):
-        """
-        Updates dictionary recursively (including nested dicts) with key, value pair
-
-        Parameters
-        ----------
-        dictionary : dict
-            The dictionary to update
-        key : any
-            The key whose value requires updating
-        value : any
-            The updated value
-        """
-        for k, v in dictionary.items():
-            if k == key:
-                dictionary[key] = value
-            elif isinstance(v, dict):
-                ExperimentConfigManager._dictionary_update_deep(v, key, value)
-
     def configurations(self):
         """
         Generator for iterating over each unique configuration of the experiment
@@ -166,7 +146,7 @@ class ExperimentConfigManager():
             # For each hyperparameter, update (deep) the current configuration with its value
             for param, value in cell.get_dictionary().items():
                 key = self.config_space.get_hyperparameter(param).meta.get("config")
-                ExperimentConfigManager._dictionary_update_deep(current_config.get(key), param, value)
+                dictionary_update_deep(current_config.get(key), param, value)
                 label.append(f"{param}={value}")
             yield ExperimentConfig(current_config, ",".join(label))
 
