@@ -147,7 +147,7 @@ class ExperimentConfigManager():
             for param, value in cell.get_dictionary().items():
                 key = self.config_space.get_hyperparameter(param).meta.get("config")
                 dictionary_update_deep(current_config.get(key), param, value)
-                label.append(f"{param}={value}")
+                label.append(f"{param}={round(value, 6) if isinstance(value, (int, float)) else value}")
             yield ExperimentConfig(current_config, ",".join(label))
 
 class Experiment():
