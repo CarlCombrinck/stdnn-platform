@@ -7,22 +7,60 @@ class ModelFileNotFoundError(FileNotFoundError):
     Error raised when model file cannot be found
     """
     def __init__(self, *args, **kwargs):
+        """
+        Constructor for ModelFileNotFoundError
+        """
         super().__init__(*args, **kwargs)
     
 class STModelManager(ABC):
     """
     Abstract spatial-temporal model from which all models must be derived
     """
+
     def __init__(self, model=None):
+        """
+        Constructor for STModelManager
+
+        Parameters
+        ----------
+        model : torch.nn.Module, optional
+            The torch model to manage, by default None
+        """
         self.model = model  
 
     def set_model(self, model):
+        """
+        Setter for model
+
+        Parameters
+        ----------
+        model : torch.nn.Module
+            The torch model to manage
+        """
         self.model = model
 
     def has_model(self):
+        """
+        Returns whether a model has been specified
+
+        Returns
+        -------
+        bool
+            Whether a model has been specified
+        """
         return self.model is not None
 
     def save_model(self, model_dir, epoch=None):
+        """
+        Saves the model in a specified directory
+
+        Parameters
+        ----------
+        model_dir : str
+            The directory in which to save the model
+        epoch : int, optional
+            The epoch associated with the model, by default None
+        """
         if model_dir is None:
             return
         if not os.path.exists(model_dir):
@@ -33,6 +71,23 @@ class STModelManager(ABC):
             torch.save(self.model, f)
 
     def load_model(self, model_dir, epoch=None):
+        """
+        Loads a model from a .pt file
+
+        Parameters
+        ----------
+        model_dir : str
+            The directory in which the model file is located
+        epoch : int, optional
+            The epoch from which to load the model, by default None
+
+        Raises
+        ------
+        ModelFileNotFoundError
+            When the model directory cannot be found
+        ModelFileNotFoundError
+            When the model file cannot be found
+        """
         if not model_dir:
             return
         epoch = str(epoch) if epoch else type(self.model).__name__
@@ -46,13 +101,37 @@ class STModelManager(ABC):
 
     @abstractmethod
     def train_model(self, *args, **kwargs):
+        """
+        Abstract method for executing the model training
+
+        Returns
+        -------
+        results : dict
+            A dictionary of pandas.DataFrame objects with the training results
+        """
         pass
 
     @abstractmethod
     def validate_model(self, *args, **kwargs):
+        """
+        Abstract method for executing the model validation
+
+        Returns
+        -------
+        results : dict
+            A dictionary of pandas.DataFrame objects with the validation results
+        """
         pass
 
     @abstractmethod
     def test_model(self, *args, **kwargs):
+        """
+        Abstract method for executing the model testing
+
+        Returns
+        -------
+        results : dict
+            A dictionary of pandas.DataFrame objects with the testing results
+        """
         pass
 
