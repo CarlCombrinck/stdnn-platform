@@ -58,18 +58,23 @@ class Plotter:
         save_figure_format : str, optional
             The file format (PNG, JPEG, etc) for the plot that will be saved to an external directory, by default 'png'
         """
-        for name, frame in dataframes_dict.items():
+        for config, frame_dict in dataframes_dict.items():
             if std_error is None:
                 for y_value in y:
-                    plt.plot(x, y_value, data=frame, label=f"{name}-{y_value}")
+                    for frame_name, frame in frame_dict.items():
+                        plt.plot(x, y_value, data=frame, label=config)
             elif len(y) == len(std_error):
                 for y_value, y_std_dev in zip(y, std_error):
-                    plt.errorbar(x, y_value, yerr=y_std_dev,
-                                 data=frame, label=name, **kwargs)
-        plt.title(f"{', '.join(y)} vs {x}")
+                    for frame_name, frame in frame_dict.items():
+                        plt.errorbar(x, y_value, yerr=y_std_dev,
+                                    data=frame, label=config, **kwargs)
+            else: 
+                raise ValueError("Expected y and std_error to be the same length")
+        plt.title(f"{', '.join([f'{frame_name}_{y_label}' for y_label in y])} vs {x}")
         plt.xlabel(x)
-        plt.ylabel(", ".join(y))
+        plt.ylabel(", ".join([f"{frame_name}_{y_label}" for y_label in y]))
         plt.legend(loc="upper right", title="key")
         plt.tight_layout()
         plt.savefig(f"{figure_name}.{save_figure_format}")
         plt.clf()
+        
