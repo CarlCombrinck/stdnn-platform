@@ -178,19 +178,21 @@ def main():
     experiment_manager = ExperimentManager(exp_config)
 
     # Run experiment
-    results = experiment_manager.run_experiments()
+    raw_results = experiment_manager.run_experiments()
 
     # Format results
     validation_results = {
-        name: exp_result.get_dataframe("valid") for name, exp_result in results.get_results().items()
+        label : result.aggregate(group_by="epoch", which=["valid"], join=True).get_dataframes() 
+        for label, result in raw_results.get_results().items()
     }
     adj_matrix_results = {
-        name: exp_result.get_dataframe("adj") for name, exp_result in results.get_results().items()
+        label : result.aggregate(group_by="index", which=["adj"], join=False).get_dataframes() 
+        for label, result in raw_results.get_results().items()
     }
 
-    # Output adj matrix data to a csv for easier retrieval
-    adj_matrix_results.to_csv("stdnn\\adjmatdata.csv")
-
+    print("VALIDATION RESULTS", validation_results, sep="\n")
+    print("MATRIX RESULTS", adj_matrix_results, sep="\n")
+    
     # Plot results
     CustomGWNPlotter.plot_lines("TestFigure", x="epoch", y=["mape_mean"], std_error=[
                                 "mape_std_dev"], dataframes_dict=validation_results, marker="o")
