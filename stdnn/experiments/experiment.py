@@ -188,9 +188,9 @@ class Experiment():
             )
             self.results.add_result(result)
 
-    def get_results(self):
+    def get_run_results(self):
         """
-        Getter for Results
+        Getter for Run results
 
         Returns
         -------
@@ -230,5 +230,5 @@ class ExperimentManager():
         for config in self.config.configurations():
             experiment = Experiment(config)
             experiment.run(repeat=self.config.get_runs())
-            results.add_result(experiment.get_results().aggregate(group_by="epoch", which=["valid", "test"]), key=config.get_label())
+            results.add_result(experiment.get_run_results().combine(), key=config.get_label())
         return results
