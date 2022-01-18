@@ -125,13 +125,54 @@ class RunResult(Result):
 
 class ExperimentResult(Result):
     """
-    Class representing the results of an experiment (combined/aggregated runs)
+    Class representing the results of an experiment (combined runs)
     """
     def __init__(self, *args, **kwargs):
         """
         Constructor for ExperimentResult
         """
         super().__init__(*args, **kwargs)
+
+    # TODO Generalize to apply any aggregation function(s) across each dataframe
+    def aggregate(self, group_by, columns=None, which=None, join=True):
+        """
+        Returns Result which represents aggregated run data
+
+        Parameters
+        ----------
+        group_by : str
+            The column by which to form groups
+        columns : list[str]
+            The columns to aggregate and include, optional, by default all
+        which : list[str], optional
+            The keys of the dataframes to perform aggregation on, by default all
+        join : bool, optional
+            Whether to merge frames if multiple aggregation methods are applied, by default True
+
+        Returns
+        -------
+        ExperimentResult
+            The aggregated ExperimentResults
+        """
+        aggregated = ExperimentResult()
+        for key, frame in self.get_dataframes().items():
+            # Drop if which specified and key not in which 
+            if which is not None and key not in which:
+                continue
+            # Otherwise, group frame, select columns if specified and calculate mean/std-dev
+            grouped = frame.groupby(by=group_by)
+            if columns is not None:
+                grouped = grouped[columns]
+            means = grouped.mean(numeric_only=True)
+            devs = grouped.std()
+            if join:
+                means.columns = [(name + "_mean") for name in means.columns if name != group_by]
+                devs.columns = [(name + "_std_dev") for name in devs.columns if name != group_by]
+                aggregated.add_dataframe(means.join(devs, on=group_by).reset_index(), key)
+            else :
+                aggregated.add_dataframe(means, "mean_" + key)
+                aggregated.add_dataframe(devs, "std_dev_" + key)
+        return aggregated
 
     def copy(self):
         """
@@ -280,47 +321,11 @@ class RunResultSet(ResultSet):
         for frame_key, data in temp.items():
             combined.add_dataframe(
                 pd.concat(
-                    data.get("frames"), keys=data.get("labels")
+                    data.get("frames"), keys=data.get("labels"), names=["run", "index"]
                 ), frame_key
             )
         return combined
 
-    # TODO Generalize to apply any aggregation function(s) across each dataframe
-    def aggregate(self, group_by, columns=None, which=None):
-        """
-        Returns Result which represents aggregated run data
-
-        Parameters
-        ----------
-        group_by : str
-            The column by which to form groups
-        columns : list[str]
-            The columns to aggregate and include, optional, by default all
-        which : list[str], optional
-            The keys of the dataframes to perform aggregation on, by default all
-
-        Returns
-        -------
-        ExperimentResult
-            The aggregated ExperimentResults
-        """
-        combined = self.combine()
-        aggregated = ExperimentResult()
-        for key, frame in combined.get_dataframes().items():
-            # Add directly if which specified and key not in which 
-            if which is not None and key not in which:
-                aggregated.add_dataframe(frame, key)
-                continue
-            # Otherwise, group frame, select columns if specified and calculate mean/std-dev
-            grouped = frame.groupby(by=group_by)
-            if columns is not None:
-                grouped = grouped[columns]
-            means = grouped.mean(numeric_only=True)
-            means.columns = [(name + "_mean") for name in means.columns if name != group_by]
-            devs = grouped.std()
-            devs.columns = [(name + "_std_dev") for name in devs.columns if name != group_by]
-            aggregated.add_dataframe(means.join(devs, on=group_by).reset_index(), key)
-        return aggregated
 
 class ExperimentResultSet(ResultSet):
     """
