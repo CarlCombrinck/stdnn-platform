@@ -125,7 +125,7 @@ class RunResult(Result):
 
 class ExperimentResult(Result):
     """
-    Class representing the results of an experiment (combined runs)
+    Class representing the results of an experiment (combined/aggregated runs)
     """
     def __init__(self, *args, **kwargs):
         """
