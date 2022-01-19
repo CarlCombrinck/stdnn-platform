@@ -124,19 +124,16 @@ else:
 
 
 def main():
-    # User settings
-    # settings.register_model(LSTM, LSTMManager)
-    # settings.register_model(GraphWaveNet, GWNManager)
 
     # Hyper parameter configuration
     cs = CS.ConfigurationSpace(seed=1234)
     lr = CSH.UniformFloatHyperparameter(
-        'lr', lower=1e-5, upper=1e-3, log=True, meta={"config": "train"})
-    # epch = CSH.UniformIntegerHyperparameter('epoch', lower=10, upper=30, log=False, meta={"config" : "train"})
-    # cs.add_hyperparameter(epch)
-    cs.add_hyperparameter(lr)
+        'lr', lower=1e-6, upper=1e-3, log=True, meta={"config": "train"})
+    dropout = CSH.UniformFloatHyperparameter(
+        'dropout', lower=0.2, upper=0.8, log=False, meta={"config": "model"})
+    cs.add_hyperparameters([lr, dropout])
 
-    # Experiment configuration
+    # Pipeline and model configuration
     pipeline_config = {
         "model": {
             "meta": {
@@ -166,11 +163,11 @@ def main():
         }
     }
 
+    # Experiment configuration
     experiment_config = {
         "config_space": cs,
         "grid": dict(
-            # epoch=3,
-            lr=2
+            lr=2, dropout=2
         ),
         "runs": 2
     }
@@ -189,13 +186,11 @@ def main():
 
         # Format results
         validation_results = {
-            label: result.aggregate(group_by="epoch", which=[
-                                    "valid"], join=True).get_dataframes()
+            label: result.aggregate(group_by="epoch", which=["valid"], join=True).get_dataframes()
             for label, result in raw_results.get_results().items()
         }
         adj_matrix_results = {
-            label: result.aggregate(group_by="index", which=[
-                                    "adj"], join=False).get_dataframes()
+            label: result.aggregate(group_by="index", which=["adj"], join=False).get_dataframes()
             for label, result in raw_results.get_results().items()
         }
 
@@ -212,15 +207,11 @@ def main():
         with open('adj_matrix_results.pickle', 'rb') as f:
             adj_matrix_results = pickle.load(f)
 
-    #print("VALIDATION RESULTS", validation_results, sep="\n")
-    #print("MATRIX RESULTS", adj_matrix_results, sep="\n")
-
     # Plot results
     CustomGWNPlotter.plot_lines("MAPE Mean vs Epoch", x="epoch", y=["mape_mean"], std_error=[
         "mape_std_dev"], dataframes_dict=validation_results, marker="o")
     CustomGWNPlotter.plot_adaptive_adj_matrix(figure_name='GWN Adaptive Adjacency Matrix',
                                               dataframe=adj_matrix_results)
-
 
 if __name__ == '__main__':
     main()
