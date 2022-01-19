@@ -129,9 +129,9 @@ def main():
     cs = CS.ConfigurationSpace(seed=1234)
     lr = CSH.UniformFloatHyperparameter(
         'lr', lower=1e-6, upper=1e-3, log=True, meta={"config": "train"})
-    dropout = CSH.UniformFloatHyperparameter(
-        'dropout', lower=0.2, upper=0.8, log=False, meta={"config": "model"})
-    cs.add_hyperparameters([lr, dropout])
+    # dropout = CSH.UniformFloatHyperparameter(
+    #     'dropout', lower=0.2, upper=0.8, log=False, meta={"config": "model"})
+    cs.add_hyperparameters([lr])#, dropout])
 
     # Pipeline and model configuration
     pipeline_config = {
@@ -167,9 +167,9 @@ def main():
     experiment_config = {
         "config_space": cs,
         "grid": dict(
-            lr=2, dropout=2
+            lr=2#, dropout=2
         ),
-        "runs": 2
+        "runs": 3
     }
 
     # TODO Remove flags and pickling (just for temporary use)
