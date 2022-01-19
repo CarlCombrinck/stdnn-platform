@@ -43,7 +43,7 @@ class Plotter:
         plt.clf()
 
     @staticmethod
-    def plot_lines(figure_name, x, y, dataframes_dict, std_error=None, save_figure_format='png', **kwargs):
+    def plot_lines(figure_name, x, y, dataframes_dict, std_error=None, save_dir=None, save_figure_format='png', **kwargs):
         """
         Plots lines on the same set of axes
 
@@ -62,6 +62,9 @@ class Plotter:
         save_figure_format : str, optional
             The file format (PNG, JPEG, etc) for the plot that will be saved to an external directory, by default 'png'
         """
+        if save_dir is not None:
+            if not os.path.exists(save_dir):
+                os.makedirs(save_dir)
         for config, frame_dict in dataframes_dict.items():
             if std_error is None:
                 for y_value in y:
@@ -79,6 +82,6 @@ class Plotter:
         plt.ylabel(", ".join([f"{frame_name}_{y_label}" for y_label in y]))
         plt.legend(loc="upper right", title="key")
         plt.tight_layout()
-        plt.savefig(f"{figure_name}.{save_figure_format}")
+        plt.savefig(os.path.join(save_dir, f"{figure_name}.{save_figure_format}"))
         plt.clf()
         
