@@ -5,6 +5,7 @@ from stdnn.experiments.results import (
 )
 from stdnn.experiments.utils import dictionary_update_deep
 from ConfigSpace.util import generate_grid
+from tqdm import tqdm
 
 class ExperimentConfig():
     """
@@ -119,6 +120,21 @@ class ExperimentConfigManager():
         grid_dims = self.raw_exp_config.get("grid")
         self.grid = generate_grid(self.config_space, grid_dims)
 
+    def print_info(self):
+        total_configs = 1
+        hyperparam_str = []
+        for param in self.config_space.get_hyperparameters():
+            hyperparam_str.append(f"{param.name} (steps={self.raw_exp_config.get('grid').get(param.name)})")
+            total_configs *= self.raw_exp_config.get('grid').get(param.name)
+        print(
+            "\nExperiment Configuration", 
+            "-" * 75, 
+            "Configured Hyperparameters:\t" + ", ".join(hyperparam_str),
+            "Total Configurations      :\t" + str(total_configs),
+            "Runs per Configuration    :\t" + str(self.get_runs()),
+            "-" * 75,
+            sep="\n")
+
     def get_runs(self):
         """
         Returns the number of repeat runs of the experiment
@@ -181,10 +197,8 @@ class Experiment():
         repeat : int, optional
             The number of times to repeat the experiment, by default 1
         """
+        progress_bar = tqdm(total=repeat)
         for run in range(repeat):
-            print("\n"+"-" * 15)
-            print(f"Run {run+1}/{repeat}")
-            print("-" * 15 + "\n")
             model = self.config.model_type(**self.config.get_model_params())
             model_manager = self.config.model_manager()
             model_manager.set_model(model)
@@ -194,6 +208,8 @@ class Experiment():
                 {**train_results, **test_results}    
             )
             self.results.add_result(result)
+            progress_bar.update(1)
+        progress_bar.close()
 
     def get_run_results(self):
         """
@@ -220,6 +236,7 @@ class ExperimentManager():
             A config manager for the experiments
         """
         self.config = config
+        self.config.print_info()
 
     # TODO Customize aggregation
     # TODO Generalize (too specific in terms of aggregation)
@@ -234,11 +251,10 @@ class ExperimentManager():
             Set of results for each experiment configuration
         """
         results = ExperimentResultSet()
+
         for config in self.config.configurations():
             experiment = Experiment(config)
-            print("="*50)
-            print(f"Running Experiment: '{config.get_label()}'...")
-            print("="*50)
+            print(f"\nRunning Experiment '{config.get_label()}'...")
             experiment.run(repeat=self.config.get_runs())
             results.add_result(experiment.get_run_results().combine(), key=config.get_label())
         return results
