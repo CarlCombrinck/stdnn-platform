@@ -4,7 +4,7 @@ import pandas as pd
 import seaborn as sns
 import matplotlib.pyplot as plt
 import networkx as nx
-
+import os
 
 class CustomGWNPlotter(Plotter):
     """
@@ -17,7 +17,7 @@ class CustomGWNPlotter(Plotter):
     """
 
     @staticmethod
-    def plot_adaptive_adj_matrix(figure_name, dataframe, save_figure_format="png", seaborn_theme='white', cmap_diverging_palette_husl_colours=[150, 275]):
+    def plot_adaptive_adj_matrix(figure_name, dataframe, save_dir=None, save_figure_format="png", seaborn_theme='white', cmap_diverging_palette_husl_colours=[150, 275]):
         """
         Plots adaptive adjacency matrix data (saved as separate images)
 
@@ -34,6 +34,9 @@ class CustomGWNPlotter(Plotter):
         cmap_diverging_palette_husl_colours : list, optional
             Color palette for matrix cells, by default [150, 275]
         """
+        if save_dir is not None:
+            if not os.path.exists(save_dir):
+                os.makedirs(save_dir)
         sns.set_theme(style=seaborn_theme)
         sns.set(font_scale=0.5)
         cmap = sns.diverging_palette(
@@ -53,5 +56,6 @@ class CustomGWNPlotter(Plotter):
                 plt.tight_layout()
                 col_value += 1
                 plt.savefig(
-                    fname=f"{plot_title}")
+                    os.path.join(save_dir, plot_title)
+                )
                 plt.clf()
