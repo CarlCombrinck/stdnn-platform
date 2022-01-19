@@ -146,6 +146,10 @@ class ExperimentConfigManager():
             # For each hyperparameter, update (deep) the current configuration with its value
             for param, value in cell.get_dictionary().items():
                 key = self.config_space.get_hyperparameter(param).meta.get("config")
+                if key is None:
+                    raise ValueError(f"No meta config value specified for ConfigSpace hyperparameter")
+                if current_config.get(key) is None:
+                    raise ValueError(f"No dictionary associated with provided meta config value '{key}'")
                 dictionary_update_deep(current_config.get(key), param, value)
                 label.append(f"{param}={round(value, 6) if isinstance(value, (int, float)) else value}")
             yield ExperimentConfig(current_config, ",".join(label))
