@@ -1,6 +1,6 @@
-from gwnet import GraphWaveNet, GWNManager
+from user_models import GraphWaveNet, GWNManager
 from stdnn.experiments.experiment import ExperimentManager, ExperimentConfigManager
-from custom_gwn_plotter import CustomGWNPlotter
+from user_plotter import CustomGWNPlotter
 
 # TODO Move this functionality (some is model specific)
 from stdnn.preprocessing.loader import load_dataset
