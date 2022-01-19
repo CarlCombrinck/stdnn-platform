@@ -201,7 +201,7 @@ class GWNManager(STModelManager):
     def __init__(self):
         super().__init__()
 
-    @timed(operation_name="Train")
+    # @timed(operation_name="Train")
     def train_model(self, train_data, valid_data, args, result_file):
         """
         Trains a graph neural network model and returns a set of validation performance metrics
@@ -274,9 +274,9 @@ class GWNManager(STModelManager):
                 continue
             param = parameter.numel()
             total_params += param
-        print(f"Total Trainable Parameters: {total_params}")
-        print("Model: GWN")
-        print()
+        # print(f"Total Trainable Parameters: {total_params}")
+        # print("Model: GWN")
+        # print()
 
         best_validate_mae = np.inf
         validate_score_non_decrease_count = 0
@@ -301,14 +301,14 @@ class GWNManager(STModelManager):
                 optimizer.step()
                 loss_total += float(loss)
 
-            print('Epoch {:2d} | Time: {:4.2f}s | Total Loss: {:5.4f}'.format(epoch + 1, (
-                    time.time() - epoch_start_time), loss_total))
+            # print('Epoch {:2d} | Time: {:4.2f}s | Total Loss: {:5.4f}'.format(epoch + 1, (
+            #         time.time() - epoch_start_time), loss_total))
             self.save_model(result_file, epoch)
             if (epoch + 1) % args.get("exponential_decay_step") == 0:
                 lr_scheduler.step()
             if (epoch + 1) % args.get("validate_freq") == 0:
                 is_best = False
-                print('------ VALIDATE ------')
+                # print('------ VALIDATE ------')
                 performance_metrics = \
                     self.validate_model(valid_loader, args.get("device"), args.get("norm_method"), args.get("horizon"), scaler=scaler)
                 valid_frame = valid_frame.append({"epoch" : epoch, **performance_metrics}, ignore_index=True)
@@ -420,12 +420,12 @@ class GWNManager(STModelManager):
             rmse[1].append(score_norm[2])
             score = (np.mean(mape[0]), np.mean(mae[0]), np.mean(rmse[0]))
             score_norm = (np.mean(mape[1]), np.mean(mae[1]), np.mean(rmse[1]))
-        print("NORM -  MAPE {:>8.4f}% | MAE {:>10.4f} | RMSE {:>10.4f}".format(score_norm[0] * 100, score_norm[1],
-                                                                            score_norm[2]))
-        print("RAW  -  MAPE {:>8.4f}% | MAE {:>10.4f} | RMSE {:>10.4f}".format(score[0] * 100, score[1], score[2]))
+        # print("NORM -  MAPE {:>8.4f}% | MAE {:>10.4f} | RMSE {:>10.4f}".format(score_norm[0] * 100, score_norm[1],
+        #                                                                     score_norm[2]))
+        # print("RAW  -  MAPE {:>8.4f}% | MAE {:>10.4f} | RMSE {:>10.4f}".format(score[0] * 100, score[1], score[2]))
         return dict(mae=score[1], mape=score[0], rmse=score[2])
 
-    @timed(operation_name="Evaluation")
+    # @timed(operation_name="Evaluation")
     def test_model(self, test_data, args, result_train_file):
         """
         Evaluates a GWN or MTGNN model and returns raw and normalized error metrics
@@ -462,6 +462,6 @@ class GWNManager(STModelManager):
         test_frame = test_frame.append(performance_metrics, ignore_index=True)
         results["test"] = test_frame
         mae, mape, rmse = performance_metrics['mae'], performance_metrics['mape'], performance_metrics['rmse']
-        print('Test Set Performance: MAPE: {:5.2f} | MAE: {:5.2f} | RMSE: {:5.2f}'.format(mape * 100, mae, rmse))
+        # print('Test Set Performance: MAPE: {:5.2f} | MAE: {:5.2f} | RMSE: {:5.2f}'.format(mape * 100, mae, rmse))
         return results
 
