@@ -18,6 +18,22 @@ class CustomGWNPlotter(Plotter):
 
     @staticmethod
     def plot_adaptive_adj_matrix(figure_name, dataframe, save_figure_format="png", seaborn_theme='white', cmap_diverging_palette_husl_colours=[150, 275]):
+        """
+        Plots adaptive adjacency matrix data (saved as separate images)
+
+        Parameters
+        ----------
+        figure_name : str
+            The name of the figure
+        dataframe : dict
+            Dictionary of dataframes (matrices) to plot
+        save_figure_format : str, optional
+            Image format to save as, by default "png"
+        seaborn_theme : str, optional
+            Seaborn theme for plotting, by default 'white'
+        cmap_diverging_palette_husl_colours : list, optional
+            Color palette for matrix cells, by default [150, 275]
+        """
         sns.set_theme(style=seaborn_theme)
         sns.set(font_scale=0.5)
         cmap = sns.diverging_palette(

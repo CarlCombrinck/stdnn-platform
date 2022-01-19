@@ -15,7 +15,8 @@ class Plotter:
 
     @staticmethod
     def plot_correlation_matrix(dataframe, seaborn_theme='white', figure_name="correlation_matrix", save_figure_format='png', cmap_diverging_palette_husl_colours=[150, 275]):
-        """[summary]
+        """
+        Plots a correlation matrix from the given dataframe
 
         Parameters
         ----------
@@ -43,7 +44,8 @@ class Plotter:
 
     @staticmethod
     def plot_lines(figure_name, x, y, dataframes_dict, std_error=None, save_figure_format='png', **kwargs):
-        """[summary]
+        """
+        Plots lines on the same set of axes
 
         Parameters
         ----------
@@ -51,10 +53,12 @@ class Plotter:
             The filename for the figure created by this method
         x : string
             The column name for the x column in the dataframe  
-        y : string[]
+        y : list[str]
             An array of strings of the y-axis column names for each dataframe 
         dataframes_dict : dictionary 
             Dictionary with key-value pairs for each config: dataframe 
+        std_error: list[str], optional
+            The std error columns corresponding to each y value, by default None
         save_figure_format : str, optional
             The file format (PNG, JPEG, etc) for the plot that will be saved to an external directory, by default 'png'
         """
