@@ -1,8 +1,6 @@
-import stdnn.conf as settings
-from stdnn.models.lstm import LSTM, LSTMManager
-from stdnn.models.gwnet import GraphWaveNet, GWNManager
+from gwnet import GraphWaveNet, GWNManager
 from stdnn.experiments.experiment import ExperimentManager, ExperimentConfigManager
-from stdnn.reporting.custom_gwn_plotter import CustomGWNPlotter
+from custom_gwn_plotter import CustomGWNPlotter
 
 # TODO Move this functionality (some is model specific)
 from stdnn.preprocessing.loader import load_dataset
@@ -16,9 +14,6 @@ import ConfigSpace as CS
 import ConfigSpace.hyperparameters as CSH
 
 import torch
-import pandas as pd
-
-import ast
 import pickle
 
 
@@ -129,9 +124,9 @@ def main():
     cs = CS.ConfigurationSpace(seed=1234)
     lr = CSH.UniformFloatHyperparameter(
         'lr', lower=1e-6, upper=1e-3, log=True, meta={"config": "train"})
-    # dropout = CSH.UniformFloatHyperparameter(
-    #     'dropout', lower=0.2, upper=0.8, log=False, meta={"config": "model"})
-    cs.add_hyperparameters([lr])#, dropout])
+    dropout = CSH.UniformFloatHyperparameter(
+        'dropout', lower=0.2, upper=0.8, log=False, meta={"config": "model"})
+    cs.add_hyperparameters([lr, dropout])
 
     # Pipeline and model configuration
     pipeline_config = {
@@ -167,9 +162,9 @@ def main():
     experiment_config = {
         "config_space": cs,
         "grid": dict(
-            lr=2#, dropout=2
+            lr=2, dropout=3
         ),
-        "runs": 3
+        "runs": 2
     }
 
     # TODO Remove flags and pickling (just for temporary use)
@@ -209,9 +204,9 @@ def main():
 
     # Plot results
     CustomGWNPlotter.plot_lines("MAPE Mean vs Epoch", x="epoch", y=["mape_mean"], std_error=[
-        "mape_std_dev"], dataframes_dict=validation_results, marker="o")
+        "mape_std_dev"], dataframes_dict=validation_results, marker="o", save_dir="plots")
     CustomGWNPlotter.plot_adaptive_adj_matrix(figure_name='GWN Adaptive Adjacency Matrix',
-                                              dataframe=adj_matrix_results)
+                                              dataframe=adj_matrix_results, save_dir="plots")
 
 if __name__ == '__main__':
     main()
