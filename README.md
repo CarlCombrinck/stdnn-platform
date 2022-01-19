@@ -36,5 +36,5 @@ make test
 or 
 ```
 source ./venv/bin/activate
-python3 stdnn-main.py --model GWN --window_size 40 --horizon 10 --baseline True
+python3 user_main.py --model GWN --window_size 40 --horizon 10 --baseline True
 ```
