@@ -177,7 +177,10 @@ class Experiment():
         repeat : int, optional
             The number of times to repeat the experiment, by default 1
         """
-        for _ in range(repeat):
+        for run in range(repeat):
+            print("\n"+"-" * 15)
+            print(f"Run {run+1}/{repeat}")
+            print("-" * 15 + "\n")
             model = self.config.model_type(**self.config.get_model_params())
             model_manager = self.config.model_manager()
             model_manager.set_model(model)
@@ -229,6 +232,9 @@ class ExperimentManager():
         results = ExperimentResultSet()
         for config in self.config.configurations():
             experiment = Experiment(config)
+            print("="*50)
+            print(f"Running Experiment: '{config.get_label()}'...")
+            print("="*50)
             experiment.run(repeat=self.config.get_runs())
             results.add_result(experiment.get_run_results().combine(), key=config.get_label())
         return results
