@@ -107,12 +107,12 @@ class STModelManager(ABC):
 
         Parameters
         ----------
-        config : ExperimentConfig
+        ExperimentConfig
             An ExperimentConfig object containing the parameters for the model and pipeline
 
         Returns
         -------
-        results : RunResult
+        RunResult
             A RunResult containing the results collected in the pipeline
         """
         train, valid, test = self.preprocess(**config.get_preprocessing_params())
@@ -130,7 +130,7 @@ class STModelManager(ABC):
 
         Returns
         -------
-        results : tuple(any)
+        tuple(any)
             A tuple of objects with the respective processed training, validation, and testing data 
         """
         pass
@@ -142,7 +142,7 @@ class STModelManager(ABC):
 
         Returns
         -------
-        results : dict
+        dict
             A dictionary of pandas.DataFrame objects with the training results
         """
         pass
@@ -154,7 +154,7 @@ class STModelManager(ABC):
 
         Returns
         -------
-        results : dict
+        dict
             A dictionary of pandas.DataFrame objects with the validation results
         """
         pass
@@ -166,7 +166,7 @@ class STModelManager(ABC):
 
         Returns
         -------
-        results : dict
+        dict
             A dictionary of pandas.DataFrame objects with the testing results
         """
         pass
