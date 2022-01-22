@@ -202,11 +202,7 @@ class Experiment():
             model = self.config.model_type(**self.config.get_model_params())
             model_manager = self.config.model_manager()
             model_manager.set_model(model)
-            train_results = model_manager.train_model(**self.config.get_training_params())
-            test_results = model_manager.test_model(**self.config.get_testing_params())
-            result = RunResult(
-                {**train_results, **test_results}    
-            )
+            result = model_manager.run_pipeline(self.config)
             self.results.add_result(result)
             progress_bar.update(1)
         progress_bar.close()

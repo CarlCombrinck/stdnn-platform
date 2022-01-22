@@ -2,6 +2,8 @@ from abc import ABC, abstractmethod
 import os 
 import torch
 
+from stdnn.experiments.results import RunResult
+
 class ModelFileNotFoundError(FileNotFoundError):
     """
     Error raised when model file cannot be found
@@ -98,6 +100,40 @@ class STModelManager(ABC):
             raise ModelFileNotFoundError(f"Could not locate model file '{file_name}'")
         with open(file_name, 'rb') as f:
             self.model = torch.load(f)
+
+    def run_pipeline(self, config):
+        """
+        Executes the machine learning pipeline for the given model
+
+        Parameters
+        ----------
+        config : ExperimentConfig
+            An ExperimentConfig object containing the parameters for the model and pipeline
+
+        Returns
+        -------
+        results : RunResult
+            A RunResult containing the results collected in the pipeline
+        """
+        train, valid, test = self.preprocess(**config.get_preprocessing_params())
+        train_results = self.train_model(train, valid, **config.get_training_params())
+        test_results = self.test_model(test, **config.get_testing_params())
+        result = RunResult(
+            {**train_results, **test_results}    
+        )
+        return result
+
+    @abstractmethod
+    def preprocess(self, *args, **kwargs):
+        """
+        Abstract method for executing the preprocessing of the data
+
+        Returns
+        -------
+        results : tuple(any)
+            A tuple of objects with the respective processed training, validation, and testing data 
+        """
+        pass
 
     @abstractmethod
     def train_model(self, *args, **kwargs):
