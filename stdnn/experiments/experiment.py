@@ -64,6 +64,18 @@ class ExperimentConfig():
         """
         return dict(self.config.get("model").get("params"))
 
+    def get_preprocessing_params(self):
+        """
+        Getter for preprocessing parameters (shallow copy)
+
+        Returns
+        -------
+        dict
+            A dictionary of preprocessing parameters 
+            (to be passed to constructor)
+        """
+        return dict(self.config.get("preprocess").get("params"))
+
     def get_training_params(self):
         """
         Getter for training parameters (shallow copy)
@@ -89,6 +101,15 @@ class ExperimentConfig():
         return dict(self.config.get("validate").get("params"))
 
     def get_testing_params(self):
+        """
+        Getter for testing parameters (shallow copy)
+
+        Returns
+        -------
+        dict
+            A dictionary of testing parameters 
+            (to be passed to test method)
+        """
         return self.config.get("test").get("params")
 
 
