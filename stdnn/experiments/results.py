@@ -14,7 +14,7 @@ class Result():
         results : dict, optional
             Results to store, by default {}
         """
-        self.results = {}
+        self._results = {}
         for key, frame in results.items():
             self.add_dataframe(frame, key)
 
@@ -29,11 +29,11 @@ class Result():
         key : any
             The key to store the DataFrame under
         """
-        self.results[key] = dataframe.copy(deep=True)
+        self._results[key] = dataframe.copy(deep=True)
 
     def get_dataframe(self, key):
         """
-        Returns a reference to the specified DataFrame
+        Returns a copy of the specified DataFrame
 
         Parameters
         ----------
@@ -43,20 +43,20 @@ class Result():
         Returns
         -------
         pandas.DataFrame
-            The corresponding DataFrame
+            A copy of the corresponding DataFrame
         """
-        return self.results.get(key)
+        return self._results.get(key).copy(deep=True)
 
     def get_dataframes(self):
         """
-        Returns shallow copy of the results dictionary
+        Returns deep copy of the results dictionary
 
         Returns
         -------
         dict
-            A shallow copy (contains DataFrame refs) of the results
+            A deep of the results dictionary
         """
-        return dict(self.results)
+        return {key: dataframe.copy(deep=True) for key, dataframe in self._results.items()}
 
     def get_dataframe_names(self):
         """
@@ -67,7 +67,7 @@ class Result():
         list
             A list of the keys
         """
-        return self.results.keys()
+        return self._results.keys()
 
     def copy(self):
         """
@@ -78,7 +78,7 @@ class Result():
         Result
             A deep copy of the Result
         """
-        return Result(self.results)
+        return Result(self._results)
 
     def __str__ (self):
         """
@@ -89,7 +89,7 @@ class Result():
         str
             A user-friendly string representing the Result
         """
-        return str(self.results)
+        return str(self._results)
 
     def __repr__(self):
         """
@@ -121,7 +121,7 @@ class RunResult(Result):
         RunResult
             A deep copy of the RunResult
         """
-        return RunResult(self.results)
+        return RunResult(self._results)
 
 class ExperimentResult(Result):
     """
@@ -183,7 +183,7 @@ class ExperimentResult(Result):
         ExperimentResult
             A deep copy of the ExperimentResult
         """
-        return ExperimentResult(self.results)
+        return ExperimentResult(self._results)
 
 class ResultSet():
     """
@@ -194,8 +194,8 @@ class ResultSet():
         """
         Constructor for ResultSet
         """
-        self.results = {}
-        self.count = 0
+        self._results = {}
+        self._count = 0
 
     def add_result(self, result, key=None):
         """
@@ -209,8 +209,8 @@ class ResultSet():
             The key under which to store the result, 
             by default an id is assigned
         """
-        self.count += 1
-        self.results[key if key is not None else str(self.count)] = result.copy()
+        self._count += 1
+        self._results[key if key is not None else str(self._count)] = result.copy()
 
     def add_results(self, results):
         """
@@ -237,7 +237,7 @@ class ResultSet():
 
     def get_result(self, key):
         """
-        Returns reference to Result stored under specified key
+        Returns copy of Result stored under specified key
 
         Parameters
         ----------
@@ -249,18 +249,18 @@ class ResultSet():
         Result
             The Result object
         """
-        return self.results.get(key)
+        return self._results.get(key).copy()
 
     def get_results(self):
         """
-        Returns a shallow copy of the Results dictionary
+        Returns a deep copy of the Results dictionary
 
         Returns
         -------
         dict
-            A shallow copy of the Results dictionary
+            A shallow deep of the Results dictionary
         """
-        return dict(self.results)
+        return {key: result.copy() for key, result in self._results.items()}
 
     def __str__(self):
         """
@@ -271,7 +271,7 @@ class ResultSet():
         str
             A user-friendly representation of the ResultSet
         """
-        return str(self.results)
+        return str(self._results)
 
     def __repr__(self):
         """
@@ -307,7 +307,7 @@ class RunResultSet(ResultSet):
         combined = ExperimentResult()
         temp = {}
         # Loop over frames and add each and its label to corresponding list in temp dictionary
-        for run_key, result in self.results.items():
+        for run_key, result in self._results.items():
             for frame_key in result.get_dataframe_names():
                 if frame_key in temp:
                     temp.get(frame_key).get("frames").append(result.get_dataframe(frame_key))
