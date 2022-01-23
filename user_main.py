@@ -1,10 +1,11 @@
-from user_models import GraphWaveNet, GWNManager
+from user_models import GraphWaveNet
+from user_model_managers import GWNManager
 from stdnn.experiments.experiment import ExperimentManager, ExperimentConfigManager
 from user_plotter import CustomGWNPlotter
 
 # TODO Move this functionality (some is model specific)
-from stdnn.preprocessing.loader import load_dataset
-from stdnn.preprocessing.utils import process_adjacency_matrix
+from user_preprocessing.loader import load_dataset
+from user_preprocessing.utils import process_adjacency_matrix
 
 import argparse
 import os
