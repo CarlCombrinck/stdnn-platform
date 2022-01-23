@@ -5,7 +5,7 @@ import pandas as pd
 import torch
 import torch.utils.data as torch_data
 
-from stdnn.utils import transform_
+from user_preprocessing.utils import transform_
 
 
 class CustomStandardScaler:
