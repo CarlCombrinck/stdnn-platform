@@ -24,22 +24,22 @@ class ExperimentConfig():
         label : str
             A label/name for identifying the experiment configuration
         """
-        self.config = dict(config)
-        self.label = label
+        self._config = dict(config)
+        self._label = label
     
     @property
     def model_type(self):
         """
         The type of the model to be configured and passed through the pipeline
         """
-        return self.config.get("model").get("meta").get("type")
+        return self._config.get("model").get("meta").get("type")
 
     @property
     def model_manager(self):
         """
         The type of the model manager to manage the configured model
         """
-        return self.config.get("model").get("meta").get("manager")
+        return self._config.get("model").get("meta").get("manager")
 
     def get_label(self):
         """
@@ -50,7 +50,7 @@ class ExperimentConfig():
         str
             The experiment label
         """
-        return self.label
+        return self._label
 
     def get_model_params(self):
         """
@@ -62,7 +62,7 @@ class ExperimentConfig():
             A dictionary of model parameters 
             (to be passed to constructor)
         """
-        return dict(self.config.get("model").get("params"))
+        return dict(self._config.get("model").get("params"))
 
     def get_preprocessing_params(self):
         """
@@ -74,7 +74,7 @@ class ExperimentConfig():
             A dictionary of preprocessing parameters 
             (to be passed to constructor)
         """
-        return dict(self.config.get("preprocess").get("params"))
+        return dict(self._config.get("preprocess").get("params"))
 
     def get_training_params(self):
         """
@@ -86,7 +86,7 @@ class ExperimentConfig():
             A dictionary of training parameters 
             (to be passed to train method)
         """
-        return dict(self.config.get("train").get("params"))
+        return dict(self._config.get("train").get("params"))
 
     def get_validation_params(self):
         """
@@ -98,7 +98,7 @@ class ExperimentConfig():
             A dictionary of validation parameters 
             (to be passed to validate method)
         """
-        return dict(self.config.get("validate").get("params"))
+        return dict(self._config.get("validate").get("params"))
 
     def get_testing_params(self):
         """
@@ -110,7 +110,7 @@ class ExperimentConfig():
             A dictionary of testing parameters 
             (to be passed to test method)
         """
-        return self.config.get("test").get("params")
+        return self._config.get("test").get("params")
 
 
 class ExperimentConfigManager():
@@ -129,22 +129,27 @@ class ExperimentConfigManager():
         raw_exp_config : dict
             Dictionary of structured config data for the experiments
         """
-        self.raw_pipeline_config = dict(raw_pipeline_config)
+        self._raw_pipeline_config = dict(raw_pipeline_config)
         self.raw_exp_config = dict(raw_exp_config)
-        self.config_space = self.raw_exp_config.get("config_space")
+        self._config_space = self.raw_exp_config.get("config_space")
         self.grid = self._generate_grid()
 
     def _generate_grid(self):
         """
         Internal method for generating hyperparameter grid
+
+        Returns
+        -------
+        list[ConfigSpace.Configuration]
+            A list of hyperparameter configurations
         """
         grid_dims = self.raw_exp_config.get("grid")
-        return generate_grid(self.config_space, grid_dims)
+        return generate_grid(self._config_space, grid_dims)
 
     def print_info(self):
         total_configs = 1
         hyperparam_str = []
-        for param in self.config_space.get_hyperparameters():
+        for param in self._config_space.get_hyperparameters():
             hyperparam_str.append(f"{param.name} (steps={self.raw_exp_config.get('grid').get(param.name)})")
             total_configs *= self.raw_exp_config.get('grid').get(param.name)
         print(
@@ -178,11 +183,11 @@ class ExperimentConfigManager():
         """
         # Loop over each hyperparameter combination
         for cell in self.grid:
-            current_config = dict(self.raw_pipeline_config)
+            current_config = dict(self._raw_pipeline_config)
             label = []
             # For each hyperparameter, update (deep) the current configuration with its value
             for param, value in cell.get_dictionary().items():
-                key = self.config_space.get_hyperparameter(param).meta.get("config")
+                key = self._config_space.get_hyperparameter(param).meta.get("config")
                 if key is None:
                     raise ValueError(f"No meta config value specified for ConfigSpace hyperparameter")
                 if current_config.get(key) is None:
@@ -205,8 +210,8 @@ class Experiment():
         config : ExperimentConfig
             The configuration for the experiment
         """
-        self.config = config
-        self.results = RunResultSet()
+        self._config = config
+        self._results = RunResultSet()
 
     # TODO Refactor to add explicit validation?
     def run(self, repeat=1):
@@ -220,11 +225,11 @@ class Experiment():
         """
         progress_bar = tqdm(total=repeat)
         for run in range(repeat):
-            model = self.config.model_type(**self.config.get_model_params())
-            model_manager = self.config.model_manager()
+            model = self._config.model_type(**self._config.get_model_params())
+            model_manager = self._config.model_manager()
             model_manager.set_model(model)
-            result = model_manager.run_pipeline(self.config)
-            self.results.add_result(result)
+            result = model_manager.run_pipeline(self._config)
+            self._results.add_result(result)
             progress_bar.update(1)
         progress_bar.close()
 
@@ -235,9 +240,9 @@ class Experiment():
         Returns
         -------
         RunResultSet
-            The set of run results
+            A deep copy of the set of RunResults
         """
-        return self.results
+        return self._results.copy()
 
 class ExperimentManager():
     """
@@ -252,8 +257,8 @@ class ExperimentManager():
         config : ExperimentConfigManager
             A config manager for the experiments
         """
-        self.config = config
-        self.config.print_info()
+        self._config = config
+        self._config.print_info()
 
     # TODO Customize aggregation
     # TODO Generalize (too specific in terms of aggregation)
@@ -269,9 +274,9 @@ class ExperimentManager():
         """
         results = ExperimentResultSet()
 
-        for config in self.config.configurations():
+        for config in self._config.configurations():
             experiment = Experiment(config)
             print(f"\nRunning Experiment '{config.get_label()}'...")
-            experiment.run(repeat=self.config.get_runs())
+            experiment.run(repeat=self._config.get_runs())
             results.add_result(experiment.get_run_results().combine(), key=config.get_label())
         return results
