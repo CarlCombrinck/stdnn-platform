@@ -3,16 +3,7 @@ import os
 import torch
 
 from stdnn.experiments.results import RunResult
-
-class ModelFileNotFoundError(FileNotFoundError):
-    """
-    Error raised when model file cannot be found
-    """
-    def __init__(self, *args, **kwargs):
-        """
-        Constructor for ModelFileNotFoundError
-        """
-        super().__init__(*args, **kwargs)
+from stdnn.models.utils import ModelFileNotFoundError
     
 class STModelManager(ABC):
     """

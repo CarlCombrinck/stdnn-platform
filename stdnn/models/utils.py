@@ -9,6 +9,17 @@ class ClassNotFoundError(ImportError):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
+
+class ModelFileNotFoundError(FileNotFoundError):
+    """
+    Error raised when model file cannot be found
+    """
+    def __init__(self, *args, **kwargs):
+        """
+        Constructor for ModelFileNotFoundError
+        """
+        super().__init__(*args, **kwargs)
+
 def timed(operation_name):
     """Parameterized decorator for timing a model operation (e.g. training/testing)
 
