@@ -262,6 +262,19 @@ class ResultSet():
         """
         return {key: result.copy() for key, result in self._results.items()}
 
+    def copy(self):
+        """
+        Returns deep copy of ResultSet
+
+        Returns
+        -------
+        ResultSet
+            A deep copy of the current ResultSet
+        """
+        results_copy = ResultSet()
+        results_copy.add_results(self._results)
+        return results_copy
+
     def __str__(self):
         """
         To string dunder method
@@ -326,6 +339,19 @@ class RunResultSet(ResultSet):
             )
         return combined
 
+    def copy(self):
+        """
+        Returns deep copy of RunResultSet
+
+        Returns
+        -------
+        RunResultSet
+            A deep copy of the current RunResultSet
+        """
+        results_copy = RunResultSet()
+        results_copy.add_results(self._results)
+        return results_copy
+
 
 class ExperimentResultSet(ResultSet):
     """
@@ -337,3 +363,16 @@ class ExperimentResultSet(ResultSet):
         Constructor for ExperimentResultSet
         """
         super().__init__(*args, **kwargs)
+
+    def copy(self):
+        """
+        Returns deep copy of ExperimentResultSet
+
+        Returns
+        -------
+        ExperimentResultSet
+            A deep copy of the current ExperimentResultSet
+        """
+        results_copy = ExperimentResultSet()
+        results_copy.add_results(self._results)
+        return results_copy
