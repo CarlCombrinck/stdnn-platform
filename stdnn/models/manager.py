@@ -106,6 +106,8 @@ class STModelManager(ABC):
         RunResult
             A RunResult containing the results collected in the pipeline
         """
+        if not self.has_model():
+            self.set_model(config.model_type(**config.get_model_params()))
         train, valid, test = self.preprocess(**config.get_preprocessing_params())
         train_results = self.train_model(train, valid, **config.get_training_params())
         test_results = self.test_model(test, **config.get_testing_params())
