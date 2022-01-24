@@ -132,14 +132,14 @@ class ExperimentConfigManager():
         self.raw_pipeline_config = dict(raw_pipeline_config)
         self.raw_exp_config = dict(raw_exp_config)
         self.config_space = self.raw_exp_config.get("config_space")
-        self._generate_grid()
+        self.grid = self._generate_grid()
 
     def _generate_grid(self):
         """
         Internal method for generating hyperparameter grid
         """
         grid_dims = self.raw_exp_config.get("grid")
-        self.grid = generate_grid(self.config_space, grid_dims)
+        return generate_grid(self.config_space, grid_dims)
 
     def print_info(self):
         total_configs = 1
