@@ -6,9 +6,6 @@ class GWNManager(STModelManager):
     def __init__(self):
         super().__init__()
 
-    def preprocess(self):
-        pass
-
     def run_pipeline(self, config):
         """
         Executes the machine learning pipeline for the given model
@@ -23,13 +20,15 @@ class GWNManager(STModelManager):
         results : RunResult
             A RunResult containing the results collected in the pipeline
         """
-        #train, valid, test = self.preprocess(**config.get_preprocessing_params())
-        train_results = self.train_model(**config.get_training_params())
-        test_results = self.test_model(**config.get_testing_params())
+        train, valid, test, train_scaler, test_scaler = self.preprocess(**config.get_preprocessing_params())
+        train_results = self.train_model(train, valid, train_scaler, **config.get_training_params())
+        test_results = self.test_model(test, test_scaler, **config.get_testing_params())
         result = RunResult(
             {**train_results, **test_results}    
         )
         return result
+
+    from user_preprocess import preprocess
 
     from user_train import train_model
 
