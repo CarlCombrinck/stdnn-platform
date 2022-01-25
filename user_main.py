@@ -40,86 +40,99 @@ def str2bool(v):
     else:
         raise argparse.ArgumentTypeError('Boolean value expected.')
 
+def argparse_setup():
+    """
+    Setup command line argument parser
 
-warnings.filterwarnings("ignore", category=UserWarning)
+    Returns
+    -------
+    argparse.Namespace
+        A Namespace containing all the command line argument values
+    """
 
-# TODO Organize parameters
-parser = argparse.ArgumentParser()
-parser.add_argument('--model', type=str, default='StemGNN')
-parser.add_argument('--baseline', type=str2bool, default=False)
-parser.add_argument('--baseline_only', type=str2bool, default=False)
-parser.add_argument('--train', type=str2bool, default=True)
-parser.add_argument('--evaluate', type=str2bool, default=True)
-parser.add_argument('--dataset', type=str, default='JSE_clean_truncated')
-parser.add_argument('--window_size', type=int, default=20)
-parser.add_argument('--train_length', type=float, default=6)
-parser.add_argument('--valid_length', type=float, default=2)
-parser.add_argument('--test_length', type=float, default=2)
-parser.add_argument('--multi_layer', type=int, default=5)
-parser.add_argument('--norm_method', type=str, default='z_score')
-parser.add_argument('--optimizer', type=str, default='RMSProp')
-parser.add_argument('--lr', type=float, default=1e-4)
-parser.add_argument('--decay_rate', type=float, default=0.5)
-parser.add_argument('--batch_size', type=int, default=32)
-parser.add_argument('--epoch', type=int, default=50)
-parser.add_argument('--early_stop', type=str2bool, default=False)
-# Missing early stop step argument?
-parser.add_argument('--exponential_decay_step', type=int, default=5)
-parser.add_argument('--validate_freq', type=int, default=1)
+    warnings.filterwarnings("ignore", category=UserWarning)
 
-# GWN arguments
-parser.add_argument('--adj_data', type=str2bool, default=False)
-parser.add_argument('--adj_type', type=str, default='double_transition')
-parser.add_argument('--device', type=str,
-                    default=('cuda' if torch.cuda.is_available() else 'cpu'))
-parser.add_argument('--dropout_rate', type=float, default=0.5)
-parser.add_argument('--gcn_bool', type=str2bool, default=True)
-parser.add_argument('--horizon', type=int, default=5)
-parser.add_argument('--apt_only', type=str2bool, default=True)
-parser.add_argument('--adapt_adj', type=str2bool, default=True)
-parser.add_argument('--random_adj', type=str2bool, default=True)
-parser.add_argument('--channels', type=int, default=32)
-parser.add_argument('--in_dim', type=int, default=1)
-parser.add_argument('--weight_decay', type=float, default=0.0001)
+    # TODO Organize parameters
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--model', type=str, default='StemGNN')
+    parser.add_argument('--baseline', type=str2bool, default=False)
+    parser.add_argument('--baseline_only', type=str2bool, default=False)
+    parser.add_argument('--train', type=str2bool, default=True)
+    parser.add_argument('--evaluate', type=str2bool, default=True)
+    parser.add_argument('--dataset', type=str, default='JSE_clean_truncated')
+    parser.add_argument('--window_size', type=int, default=20)
+    parser.add_argument('--train_length', type=float, default=6)
+    parser.add_argument('--valid_length', type=float, default=2)
+    parser.add_argument('--test_length', type=float, default=2)
+    parser.add_argument('--multi_layer', type=int, default=5)
+    parser.add_argument('--norm_method', type=str, default='z_score')
+    parser.add_argument('--optimizer', type=str, default='RMSProp')
+    parser.add_argument('--lr', type=float, default=1e-4)
+    parser.add_argument('--decay_rate', type=float, default=0.5)
+    parser.add_argument('--batch_size', type=int, default=32)
+    parser.add_argument('--epoch', type=int, default=50)
+    parser.add_argument('--early_stop', type=str2bool, default=False)
+    # Missing early stop step argument?
+    parser.add_argument('--exponential_decay_step', type=int, default=5)
+    parser.add_argument('--validate_freq', type=int, default=1)
 
-# LSTM arguments
-parser.add_argument('--lstm_layers', type=int, default=100)
-parser.add_argument('--lstm_node', type=int, default=0)
+    # GWN arguments
+    parser.add_argument('--adj_data', type=str2bool, default=False)
+    parser.add_argument('--adj_type', type=str, default='double_transition')
+    parser.add_argument('--device', type=str,
+                        default=('cuda' if torch.cuda.is_available() else 'cpu'))
+    parser.add_argument('--dropout_rate', type=float, default=0.5)
+    parser.add_argument('--gcn_bool', type=str2bool, default=True)
+    parser.add_argument('--horizon', type=int, default=5)
+    parser.add_argument('--apt_only', type=str2bool, default=True)
+    parser.add_argument('--adapt_adj', type=str2bool, default=True)
+    parser.add_argument('--random_adj', type=str2bool, default=True)
+    parser.add_argument('--channels', type=int, default=32)
+    parser.add_argument('--in_dim', type=int, default=1)
+    parser.add_argument('--weight_decay', type=float, default=0.0001)
 
-# User argument configuration
-args = parser.parse_args()
-result_train_file = os.path.join('output', args.model, args.dataset, str(
-    args.window_size), str(args.horizon), 'train')
-baseline_train_file = os.path.join('output', 'lstm', args.dataset, str(
-    args.window_size), str(args.horizon), 'train')
-if not os.path.exists(result_train_file):
-    os.makedirs(result_train_file)
-if not os.path.exists(baseline_train_file):
-    os.makedirs(baseline_train_file)
+    # LSTM arguments
+    parser.add_argument('--lstm_layers', type=int, default=100)
+    parser.add_argument('--lstm_node', type=int, default=0)
 
-train_data, valid_data, test_data = load_dataset(
-    args.dataset, args.train_length, args.valid_length, args.test_length)
-args.node_cnt = train_data.shape[1]
+    # User argument configuration
+    args = parser.parse_args()
 
-if args.adj_data:
-    adj_matrix = process_adjacency_matrix(os.path.join(
-        'data', args.dataset + '.csv'), args.adj_type)
-    args.supports = [torch.tensor(i).to(args.device) for i in adj_matrix]
-    if args.apt_only:
-        args.supports = None
-        args.adj_init = None
-    else:
-        if args.random_adj:
+    if args.adj_data:
+        adj_matrix = process_adjacency_matrix(os.path.join(
+            'data', args.dataset + '.csv'), args.adj_type)
+        args.supports = [torch.tensor(i).to(args.device) for i in adj_matrix]
+        if args.apt_only:
+            args.supports = None
             args.adj_init = None
         else:
-            args.adj_init = args.supports[0]
-else:
-    args.adj_matrix = None
-    args.adj_init = None
-    args.supports = None
+            if args.random_adj:
+                args.adj_init = None
+            else:
+                args.adj_init = args.supports[0]
+    else:
+        args.adj_matrix = None
+        args.adj_init = None
+        args.supports = None
 
+    return args
 
 def main():
+
+    args = argparse_setup()
+
+    train_data, valid_data, test_data = load_dataset(
+        args.dataset, args.train_length, args.valid_length, args.test_length)
+    args.node_cnt = train_data.shape[1]
+
+    result_train_file = os.path.join('output', args.model, args.dataset, str(
+        args.window_size), str(args.horizon), 'train')
+    baseline_train_file = os.path.join('output', 'lstm', args.dataset, str(
+        args.window_size), str(args.horizon), 'train')
+    if not os.path.exists(result_train_file):
+        os.makedirs(result_train_file)
+    if not os.path.exists(baseline_train_file):
+        os.makedirs(baseline_train_file)
 
     # Hyper parameter configuration
     cs = CS.ConfigurationSpace(seed=1234)
@@ -143,18 +156,19 @@ def main():
                            skip_channels=args.channels * 8, end_channels=args.channels * 16
                            )
         },
-        "train": {
-            "params": dict(
-                train_data=train_data, valid_data=valid_data, args=vars(args), result_file=result_train_file
+        "preprocess" : {
+            "params" : dict(
+                args=args, train_data=train_data, valid_data=valid_data, test_data=test_data, result_file=result_train_file
             )
         },
-        # TODO Currently included in train method (from Kialan's code - ask about this)
-        # "validate" : {
-        #     "loader" : ...
-        # },
+        "train": {
+            "params": dict(
+                args=vars(args), result_file=result_train_file
+            )
+        },
         "test": {
             "params": dict(
-                test_data=test_data, args=vars(args), result_train_file=result_train_file
+                args=vars(args), result_train_file=result_train_file
             )
         }
     }
