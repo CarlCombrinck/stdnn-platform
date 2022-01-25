@@ -7,7 +7,7 @@ from stdnn.models.utils import timed
 import pandas as pd
 
 # @timed(operation_name="Evaluation")
-def test_model(self, test_data, args, result_train_file):
+def test_model(self, test_loader, scaler, args, result_train_file):
     """
     Evaluates a GWN or MTGNN model and returns raw and normalized error metrics
     computed on out-of-sample set predictions
@@ -34,10 +34,6 @@ def test_model(self, test_data, args, result_train_file):
         df.to_csv(args.get("model") + '_corr.csv')
         results["adj"] = df
 
-    x, y = process_data(test_data, args.get("window_size"), args.get("horizon"))
-    scaler = user_preprocessing.loader.CustomStandardScaler(mean=x.mean(), std=x.std())
-    test_loader = user_preprocessing.loader.CustomSimpleDataLoader(scaler.transform(x), scaler.transform(y),
-                                                                args.get("batch_size"))
     test_frame = pd.DataFrame(columns=["mae", "mape", "rmse"])
     performance_metrics = self.validate_model(test_loader, args.get("device"), args.get("norm_method"), args.get("horizon"), scaler=scaler)
     test_frame = test_frame.append(performance_metrics, ignore_index=True)
