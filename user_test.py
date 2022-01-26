@@ -36,7 +36,8 @@ def test_model(self, test_loader, scaler, args, result_train_file):
 
     test_frame = pd.DataFrame(columns=["mae", "mape", "rmse"])
     performance_metrics = self.validate_model(test_loader, args.get("device"), args.get("norm_method"), args.get("horizon"), scaler=scaler)
-    test_frame = test_frame.append(performance_metrics, ignore_index=True)
+    entry = pd.DataFrame(performance_metrics, index=[0])
+    test_frame = pd.concat([test_frame, entry], ignore_index=True, axis=0)
     results["test"] = test_frame
     mae, mape, rmse = performance_metrics['mae'], performance_metrics['mape'], performance_metrics['rmse']
     # print('Test Set Performance: MAPE: {:5.2f} | MAE: {:5.2f} | RMSE: {:5.2f}'.format(mape * 100, mae, rmse))

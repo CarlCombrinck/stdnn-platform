@@ -93,7 +93,8 @@ def train_model(self, train_loader, valid_loader, scaler, args, result_file):
             # print('------ VALIDATE ------')
             performance_metrics = \
                 self.validate_model(valid_loader, args.get("device"), args.get("norm_method"), args.get("horizon"), scaler=scaler)
-            valid_frame = valid_frame.append({"epoch" : epoch, **performance_metrics}, ignore_index=True)
+            entry = pd.DataFrame({"epoch" : epoch, **performance_metrics}, index=[0])
+            valid_frame = pd.concat([valid_frame, entry], ignore_index=True, axis=0)
             if np.abs(best_validate_mae) > np.abs(performance_metrics['mae']):
                 best_validate_mae = performance_metrics['mae']
                 is_best = True
