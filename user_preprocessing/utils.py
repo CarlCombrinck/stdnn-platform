@@ -2,6 +2,7 @@ import numpy as np
 import pandas as pd
 import scipy.sparse as sp
 from scipy.sparse import linalg
+import os
 
 def transform_(data, normalize_method, norm_statistic=None):
     if normalize_method == 'min_max':
@@ -36,6 +37,10 @@ def inverse_transform_(data, normalize_method, norm_statistic=None):
         data = data * std + mean
     return data
 
+def get_node_count_from_data(datafile):
+    data_file = os.path.join('data', datafile + '.csv')
+    data = pd.read_csv(data_file).values
+    return data.shape[1]
 
 def correlation_adjacency_matrix(dataset):
     return pd.read_csv(dataset).corr().to_numpy()
