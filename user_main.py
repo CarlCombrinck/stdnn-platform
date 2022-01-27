@@ -1,11 +1,13 @@
 from user_models import GraphWaveNet
 from user_model_managers import GWNManager
-from stdnn.experiments.experiment import ExperimentManager, ExperimentConfigManager
 from user_plotter import CustomGWNPlotter
+from user_preprocessing.utils import (
+    process_adjacency_matrix, 
+    get_node_count_from_data
+)
 
-# TODO Move this functionality (some is model specific)
-from user_preprocessing.loader import load_dataset
-from user_preprocessing.utils import process_adjacency_matrix, get_node_count_from_data
+from stdnn.experiments.experiment import ExperimentManager, ExperimentConfigManager
+from stdnn.experiments.results import ExperimentResultSet
 
 import argparse
 import os
@@ -180,16 +182,17 @@ def main():
     experiment_config = {
         "config_space": cs,
         "grid": dict(
-            lr=2, dropout=3
+            lr=2, dropout=2
         ),
         "runs": 2
     }
 
     # TODO Remove flags and pickling (just for temporary use)
-    RUN_EXPERIMENTS = True
+    RUN_EXPERIMENTS = False
+
+    raw_results = None
 
     if RUN_EXPERIMENTS:
-
         exp_config = ExperimentConfigManager(
             pipeline_config, experiment_config)
         experiment_manager = ExperimentManager(exp_config)
@@ -197,32 +200,26 @@ def main():
         # Run experiment
         raw_results = experiment_manager.run_experiments()
 
-        # Format results
-        validation_results = {
-            label: result.aggregate(group_by="epoch", which=["valid"], join=True).get_dataframes()
-            for label, result in raw_results.get_results().items()
-        }
-        adj_matrix_results = {
-            label: result.aggregate(group_by="index", which=["adj"], join=False).get_dataframes()
-            for label, result in raw_results.get_results().items()
-        }
-
-        # TODO Move pickling to object classes
-        with open('validation_results.pickle', 'wb') as f:
-            pickle.dump(validation_results, f)
-
-        with open('adj_matrix_results.pickle', 'wb') as f:
-            pickle.dump(adj_matrix_results, f)
+        # Save results
+        raw_results.save_to("results", "results.pickle")
 
     else:
-        with open('validation_results.pickle', 'rb') as f:
-            validation_results = pickle.load(f)
-        with open('adj_matrix_results.pickle', 'rb') as f:
-            adj_matrix_results = pickle.load(f)
+        # Load results
+        raw_results = ExperimentResultSet.load_from("results", "results.pickle")
+
+    # Format results
+    training_results = {
+        label: result.aggregate(group_by="epoch", which=["train","valid"], join=True).get_dataframes()
+        for label, result in raw_results.get_results().items()
+    }
+    adj_matrix_results = {
+        label: result.aggregate(group_by="index", which=["adj"], join=False).get_dataframes()
+        for label, result in raw_results.get_results().items()
+    }
 
     # Plot results
     CustomGWNPlotter.plot_lines("MAPE Mean vs Epoch", x="epoch", y=["mape_mean"], std_error=[
-        "mape_std_dev"], dataframes_dict=validation_results, marker="o", save_dir="plots")
+        "mape_std_dev"], dataframes_dict=training_results, marker="o", save_dir="plots")
     CustomGWNPlotter.plot_adaptive_adj_matrix(figure_name='GWN Adaptive Adjacency Matrix',
                                               dataframe=adj_matrix_results, save_dir="plots")
 
