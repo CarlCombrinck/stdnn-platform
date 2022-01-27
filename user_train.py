@@ -62,6 +62,7 @@ def train_model(self, train_loader, valid_loader, scaler, args, result_file):
 
     best_validate_mae = np.inf
     validate_score_non_decrease_count = 0
+    train_frame = pd.DataFrame(columns=["epoch", "mape", "mae", "rmse"])
     valid_frame = pd.DataFrame(columns=["epoch", "mape", "mae", "rmse"])
     for epoch in range(args.get("epoch")):
         epoch_start_time = time.time()
@@ -93,8 +94,12 @@ def train_model(self, train_loader, valid_loader, scaler, args, result_file):
             # print('------ VALIDATE ------')
             performance_metrics = \
                 self.validate_model(valid_loader, args.get("device"), args.get("norm_method"), args.get("horizon"), scaler=scaler)
+            performance_metrics_train = \
+                self.validate_model(train_loader, args.get("device"), args.get("norm_method"), args.get("horizon"), scaler=scaler)
             entry = pd.DataFrame({"epoch" : epoch, **performance_metrics}, index=[0])
+            entry_train = pd.DataFrame({"epoch" : epoch, **performance_metrics_train}, index=[0])
             valid_frame = pd.concat([valid_frame, entry], ignore_index=True, axis=0)
+            train_frame = pd.concat([train_frame, entry_train], ignore_index=True, axis=0)
             if np.abs(best_validate_mae) > np.abs(performance_metrics['mae']):
                 best_validate_mae = performance_metrics['mae']
                 is_best = True
@@ -105,4 +110,4 @@ def train_model(self, train_loader, valid_loader, scaler, args, result_file):
                 self.save_model(result_file)
         if args.get("early_stop") and validate_score_non_decrease_count >= args.get("early_stop_step"):
             break
-    return dict(valid=valid_frame)
+    return dict(train=train_frame, valid=valid_frame)
