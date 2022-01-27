@@ -49,7 +49,7 @@ class MyModelManager(STModelManager):
     def preprocess(self, ...):
         ...
     
-    def train_model(self, ...)
+    def train_model(self, ...):
         ...
 
     def test_model(self, ...):
@@ -59,7 +59,7 @@ class MyModelManager(STModelManager):
 3. Configure the hyperparameters.\
 These should make use of the `ConfigSpace` package.\
 Each hyperparameter name must match a parameter specified in the pipeline/model configuration. \
-The `meta` argument of each hyperparameter must by set to specify where (what stage of the pipeline) the hyperparameter must be used (model, preprocess, train, test).
+The `meta` argument of each hyperparameter must by set to specify where (in what stage of the pipeline) the hyperparameter must be used (model, preprocess, train, test).
 
 ```python
 import ConfigSpace as CS
@@ -89,16 +89,16 @@ pipeline_config = {
             "type": MyModel,
             "manager": MyModelManager
         },
-        "params" : {...}
+        "params" : {...} # passed to model constructor
     },
     "preprocess" : {
-        "params" : {...}
+        "params" : {...} # passed to preprocess method
     },
     "train": {
-        "params" : {...}
+        "params" : {...} # passed to train_model method
     },
     "test": {
-        "params" : {...}
+        "params" : {...} # passed to test_model method
     }
 }
 ```
