@@ -131,24 +131,12 @@ class STModelManager(ABC):
     @abstractmethod
     def train_model(self, *args, **kwargs):
         """
-        Abstract method for executing the model training
+        Abstract method for executing the model training and validation
 
         Returns
         -------
         dict
             A dictionary of pandas.DataFrame objects with the training results
-        """
-        pass
-
-    @abstractmethod
-    def validate_model(self, *args, **kwargs):
-        """
-        Abstract method for executing the model validation
-
-        Returns
-        -------
-        dict
-            A dictionary of pandas.DataFrame objects with the validation results
         """
         pass
 
