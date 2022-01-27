@@ -1,6 +1,7 @@
 import pandas as pd
+from stdnn.utils import PickleMixin
 
-class Result():
+class Result(PickleMixin):
     """
     Class for storing and managing results (a dictionary of related DataFrames)
     """
@@ -185,7 +186,7 @@ class ExperimentResult(Result):
         """
         return ExperimentResult(self._results)
 
-class ResultSet():
+class ResultSet(PickleMixin):
     """
     Class for storing and managing many Result objects
     """
