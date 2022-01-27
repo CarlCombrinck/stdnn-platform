@@ -6,7 +6,13 @@ import os
 import json
 import numpy as np
 
-def preprocess(self, args, train_data, valid_data, test_data, result_file):
+from user_preprocessing.loader import load_dataset
+
+def preprocess(self, args, datafile, result_file):
+
+    train_data, valid_data, test_data = load_dataset(
+        datafile, args.train_length, args.valid_length, args.test_length)
+
     if len(train_data) == 0:
         raise Exception('Cannot organize enough training data')
     if len(valid_data) == 0:

@@ -5,7 +5,7 @@ from user_plotter import CustomGWNPlotter
 
 # TODO Move this functionality (some is model specific)
 from user_preprocessing.loader import load_dataset
-from user_preprocessing.utils import process_adjacency_matrix
+from user_preprocessing.utils import process_adjacency_matrix, get_node_count_from_data
 
 import argparse
 import os
@@ -115,16 +115,11 @@ def argparse_setup():
         args.adj_init = None
         args.supports = None
 
+    args.node_cnt = get_node_count_from_data(args.dataset)
+
     return args
 
-def main():
-
-    args = argparse_setup()
-
-    train_data, valid_data, test_data = load_dataset(
-        args.dataset, args.train_length, args.valid_length, args.test_length)
-    args.node_cnt = train_data.shape[1]
-
+def create_output_dirs(args):
     result_train_file = os.path.join('output', args.model, args.dataset, str(
         args.window_size), str(args.horizon), 'train')
     baseline_train_file = os.path.join('output', 'lstm', args.dataset, str(
@@ -133,6 +128,14 @@ def main():
         os.makedirs(result_train_file)
     if not os.path.exists(baseline_train_file):
         os.makedirs(baseline_train_file)
+
+    return result_train_file
+
+def main():
+
+    args = argparse_setup()
+
+    result_train_file = create_output_dirs(args)
 
     # Hyper parameter configuration
     cs = CS.ConfigurationSpace(seed=1234)
@@ -158,7 +161,7 @@ def main():
         },
         "preprocess" : {
             "params" : dict(
-                args=args, train_data=train_data, valid_data=valid_data, test_data=test_data, result_file=result_train_file
+                args=args, datafile=args.dataset, result_file=result_train_file
             )
         },
         "train": {
