@@ -1,3 +1,4 @@
+from distutils.util import strtobool
 from user_models import GraphWaveNet
 from user_model_managers import GWNManager
 from user_plotter import CustomGWNPlotter
@@ -54,6 +55,7 @@ def argparse_setup():
 
     # TODO Organize parameters
     parser = argparse.ArgumentParser()
+    parser.add_argument('--run_pipeline', type=str2bool, default=True)
     parser.add_argument('--model', type=str, default='StemGNN')
     parser.add_argument('--baseline', type=str2bool, default=False)
     parser.add_argument('--baseline_only', type=str2bool, default=False)
@@ -185,12 +187,9 @@ def main():
         "runs": 2
     }
 
-    # TODO Remove flags and pickling (just for temporary use)
-    RUN_EXPERIMENTS = False
-
     raw_results = None
 
-    if RUN_EXPERIMENTS:
+    if args.run_pipeline:
         exp_config = ExperimentConfigManager(
             pipeline_config, experiment_config)
         experiment_manager = ExperimentManager(exp_config)
