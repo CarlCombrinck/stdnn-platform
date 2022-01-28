@@ -1,8 +1,5 @@
 from user_metrics import evaluate
 
-# TODO Move to another module (for decorators)
-from stdnn.models.utils import timed
-
 import torch
 import numpy as np
 

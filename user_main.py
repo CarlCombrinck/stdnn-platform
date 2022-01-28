@@ -17,8 +17,6 @@ import ConfigSpace as CS
 import ConfigSpace.hyperparameters as CSH
 
 import torch
-import pickle
-
 
 def str2bool(v):
     """

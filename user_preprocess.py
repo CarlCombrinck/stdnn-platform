@@ -1,7 +1,6 @@
 from user_preprocessing.utils import process_adjacency_matrix, process_data
 import user_preprocessing
 
-import torch
 import os
 import json
 import numpy as np
