@@ -3,7 +3,7 @@ from user_models import GraphWaveNet
 from user_model_managers import GWNManager
 from user_plotter import CustomGWNPlotter
 from user_preprocessing.utils import (
-    process_adjacency_matrix, 
+    process_adjacency_matrix,
     get_node_count_from_data
 )
 
@@ -13,11 +13,13 @@ from stdnn.experiments.results import ExperimentResultSet
 import argparse
 import os
 import warnings
+from stdnn.reporting.latex import ToLatex
 
 import ConfigSpace as CS
 import ConfigSpace.hyperparameters as CSH
 
 import torch
+
 
 def str2bool(v):
     """
@@ -40,6 +42,7 @@ def str2bool(v):
         return False
     else:
         raise argparse.ArgumentTypeError('Boolean value expected.')
+
 
 def argparse_setup():
     """
@@ -121,6 +124,7 @@ def argparse_setup():
 
     return args
 
+
 def create_output_dirs(args):
     result_train_file = os.path.join('output', args.model, args.dataset, str(
         args.window_size), str(args.horizon), 'train')
@@ -132,6 +136,7 @@ def create_output_dirs(args):
         os.makedirs(baseline_train_file)
 
     return result_train_file
+
 
 def main():
 
@@ -161,8 +166,8 @@ def main():
                            skip_channels=args.channels * 8, end_channels=args.channels * 16
                            )
         },
-        "preprocess" : {
-            "params" : dict(
+        "preprocess": {
+            "params": dict(
                 args=args, datafile=args.dataset, result_file=result_train_file
             )
         },
@@ -202,15 +207,18 @@ def main():
 
     else:
         # Load results
-        raw_results = ExperimentResultSet.load_from("results", "results.pickle")
+        raw_results = ExperimentResultSet.load_from(
+            "results", "results.pickle")
 
     # Format results
     training_results = {
-        label: result.aggregate(group_by="epoch", which=["train","valid"], join=True).get_dataframes()
+        label: result.aggregate(group_by="epoch", which=[
+                                "train", "valid"], join=True).get_dataframes()
         for label, result in raw_results.get_results().items()
     }
     adj_matrix_results = {
-        label: result.aggregate(group_by="index", which=["adj"], join=False).get_dataframes()
+        label: result.aggregate(group_by="index", which=[
+                                "adj"], join=False).get_dataframes()
         for label, result in raw_results.get_results().items()
     }
 
@@ -219,6 +227,12 @@ def main():
         "mape_std_dev"], dataframes_dict=training_results, marker="o", save_dir="plots")
     CustomGWNPlotter.plot_adaptive_adj_matrix(figure_name='GWN Adaptive Adjacency Matrix',
                                               dataframe=adj_matrix_results, save_dir="plots")
+
+    # Outputting to Latex
+
+    ToLatex.to_latex(training_results)
+    ToLatex.to_latex(adj_matrix_results)
+
 
 if __name__ == '__main__':
     main()
