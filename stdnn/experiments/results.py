@@ -164,7 +164,7 @@ class ExperimentResult(Result):
             grouped = frame.groupby(by=group_by)
             if columns is not None:
                 grouped = grouped[columns]
-            means = grouped.mean(numeric_only=True)
+            means = grouped.mean()
             devs = grouped.std()
             if join:
                 means.columns = [(name + "_mean") for name in means.columns if name != group_by]
