@@ -1,0 +1,1 @@
+sudo apt install -y libcairo2-dev pkg-config dvipng texlive-latex-extra texlive-fonts-recommended cm-super fonts-noto-cjk
