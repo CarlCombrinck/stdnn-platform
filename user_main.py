@@ -1,4 +1,3 @@
-from distutils.util import strtobool
 from user_models import GraphWaveNet
 from user_model_managers import GWNManager
 from user_plotter import CustomGWNPlotter
@@ -150,7 +149,7 @@ def main():
         'lr', lower=1e-6, upper=1e-3, log=True, meta={"config": "train"})
     dropout = CSH.UniformFloatHyperparameter(
         'dropout', lower=0.2, upper=0.8, log=False, meta={"config": "model"})
-    cs.add_hyperparameters([lr, dropout])
+    cs.add_hyperparameters([lr])
 
     # Pipeline and model configuration
     pipeline_config = {
@@ -187,7 +186,7 @@ def main():
     experiment_config = {
         "config_space": cs,
         "grid": dict(
-            lr=2, dropout=2
+            lr=3
         ),
         "runs": 2
     }
@@ -223,10 +222,25 @@ def main():
     }
 
     # Plot results
-    CustomGWNPlotter.plot_lines("MAPE Mean vs Epoch", x="epoch", y=["mape_mean"], std_error=[
-        "mape_std_dev"], dataframes_dict=training_results, marker="o", save_dir="plots")
-    CustomGWNPlotter.plot_adaptive_adj_matrix(figure_name='GWN Adaptive Adjacency Matrix',
-                                              dataframe=adj_matrix_results, save_dir="plots")
+    CustomGWNPlotter.plot_lines(
+        figure_name="MAPE Loss", 
+        x="epoch", 
+        y=["mape_mean"], 
+        std_error=["mape_std_dev"], 
+        dataframes_dict=training_results, 
+        marker=".",
+        save_dir="plots",
+        xlabel="Epoch", 
+        ylabel="MAPE", 
+        title="Training and Validation Loss", 
+        perconfig=True
+    )
+    
+    CustomGWNPlotter.plot_adaptive_adj_matrix(
+        figure_name='GWN Adaptive Adjacency Matrix',
+        dataframe=adj_matrix_results,
+        save_dir="plots"
+    )
 
     # Outputting to Latex
 
