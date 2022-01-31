@@ -1,11 +1,11 @@
 from string import ascii_letters
+from matplotlib import widgets
 import numpy as np
 import pandas as pd
 import seaborn as sns
 import matplotlib.pyplot as plt
 import matplotlib as mt
 import os
-import sys
 
 
 class Plotter:
@@ -43,7 +43,15 @@ class Plotter:
         plt.clf()
 
     @staticmethod
-    def plot_lines(figure_name, x, y, dataframes_dict, std_error=None, save_dir=None, save_figure_format='png', **kwargs):
+    def _setup_plot(title, xlabel, ylabel, figsize):
+        plt.figure(figsize=figsize)
+        plt.title(title)
+        plt.xlabel(xlabel)
+        plt.ylabel(ylabel)
+        plt.tight_layout()
+
+    @staticmethod
+    def plot_lines(figure_name, x, y, dataframes_dict, std_error=None, save_figure_format='png', xlabel=None, ylabel=None, title=None, perconfig=True, figsize=(6,4), save_dir=None, **kwargs):
         """
         Plots lines on the same set of axes
 
@@ -65,23 +73,34 @@ class Plotter:
         if save_dir is not None:
             if not os.path.exists(save_dir):
                 os.makedirs(save_dir)
-        for config, frame_dict in dataframes_dict.items():
-            if std_error is None:
-                for y_value in y:
-                    for frame_name, frame in frame_dict.items():
-                        plt.plot(x, y_value, data=frame, label=config)
-            elif len(y) == len(std_error):
-                for y_value, y_std_dev in zip(y, std_error):
-                    for frame_name, frame in frame_dict.items():
-                        plt.errorbar(x, y_value, yerr=y_std_dev,
-                                    data=frame, label=config, **kwargs)
-            else: 
-                raise ValueError("Expected y and std_error to be the same length")
-        plt.title(f"{', '.join([f'{frame_name}_{y_label}' for y_label in y])} vs {x}")
-        plt.xlabel(x)
-        plt.ylabel(", ".join([f"{frame_name}_{y_label}" for y_label in y]))
-        plt.legend(loc="upper right", title="key")
-        plt.tight_layout()
-        plt.savefig(os.path.join(save_dir, f"{figure_name}.{save_figure_format}"))
-        plt.clf()
+        with plt.style.context(['science', 'std-colors']):
+            Plotter._setup_plot(title, xlabel, ylabel, figsize)
+            for config, frame_dict in dataframes_dict.items():
+                if perconfig:
+                    Plotter._setup_plot(f"{title} ({config})", xlabel, ylabel, figsize)
+                if std_error is None:
+                    for y_value in y:
+                        for frame_name, frame in frame_dict.items():
+                            plt.plot(x, y_value, data=frame, 
+                                label=(frame_name if perconfig else f"{frame_name} - {config}"), 
+                                **kwargs
+                            )
+                elif len(y) == len(std_error):
+                    for y_value, y_std_dev in zip(y, std_error):
+                        for frame_name, frame in frame_dict.items():
+                            plt.errorbar(x, y_value, yerr=y_std_dev, data=frame, 
+                                label=(frame_name if perconfig else f"{frame_name} - {config}"), 
+                                **kwargs
+                            )
+                else: 
+                    raise ValueError("Expected y and std_error to be the same length")
+                if perconfig:
+                    plt.legend(loc="best", title="Legend")
+                    plt.savefig(os.path.join(save_dir, f"{config.replace('.', 'pt')}-{figure_name}.{save_figure_format}"))
+                    plt.clf()
+            if not perconfig:
+                plt.legend(bbox_to_anchor=(1.05, 1.0), loc="upper left", title="Legend")
+                plt.savefig(os.path.join(save_dir, f"{figure_name}.{save_figure_format}"))
+                plt.clf()
+        
         
