@@ -6,7 +6,7 @@ install:
 
 run:
 	./venv/bin/activate && \
-	python3 user_main.py --model GWN --window_size 20 --horizon 20 --epoch 50
+	python3 user_main.py --model GWN --window_size 20 --horizon 20 --epoch 5
 
 plot:
 	./venv/bin/activate && \
