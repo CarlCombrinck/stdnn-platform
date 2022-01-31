@@ -12,3 +12,4 @@ scikit-learn
 torch==1.7.1
 tqdm
 pylatex
+SciencePlots
