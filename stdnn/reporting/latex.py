@@ -1,4 +1,4 @@
-import pandas as pd
+"""import pandas as pd
 import pylatex as pl
 
 class ToLatex():
@@ -15,5 +15,5 @@ class ToLatex():
                 for type_of_data, data in dataframe_dict.items():
                     document = pl.Document(f"{config} - {type_of_data}")
                     ToLatex.__output_dataframe_to_latex(document = document, dataframe= data, caption = f"Table: {config} - {type_of_data}")
-
+""" 
 

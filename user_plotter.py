@@ -92,20 +92,24 @@ class CustomGWNPlotter(Plotter):
                 ncols = CustomGWNPlotter.__determine_number_of_columns(
                     dataframe_dict)
                 col_value = 0
-                for type_of_data, data in dataframe_dict.items():
-                    fig, ax = fig, ax = plt.subplots(nrows=1, ncols=ncols)
+                fig, ax = plt.subplots(ncols=ncols, figsize= (12,4), constrained_layout = True)
+                for type_of_data, data in dataframe_dict.items():                  
                     columns = data.columns
                     data.index = columns.values
                     plot_title = f"{figure_name}-{config}-{type_of_data}".replace(
                         ".", "pt")
-                    sns.heatmap(data, cmap=cmap, center=0, square=True,
-                                linewidths=.5, ax=ax[1, col_value])
-                    ax[1, col_value].set_title(plot_title)
+                    plt.tight_layout()
+                    super_title = f"{figure_name}-{config}".replace(
+                        ".", "pt")
+                    plt.suptitle =  super_title
+                    sns.heatmap(data, cmap=cmap,  square=True,
+                                linewidths=.5, ax=ax[col_value])
+                    ax[col_value].set_title(plot_title)
                     col_value += 1
-            plt.savefig(os.path.join(save_dir, figure_name))
-            return
+                    
+                plt.savefig(os.path.join(save_dir, super_title))
 
-        else:
+        elif grouped is False and perconfig is True:
             fig, ax = plt.subplots()
             for config, dataframe_dict in dataframe.items():
                 for type_of_data, data in dataframe_dict.items():

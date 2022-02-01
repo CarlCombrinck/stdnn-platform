@@ -12,7 +12,7 @@ from stdnn.experiments.results import ExperimentResultSet
 import argparse
 import os
 import warnings
-from stdnn.reporting.latex import ToLatex
+
 
 import ConfigSpace as CS
 import ConfigSpace.hyperparameters as CSH
@@ -234,18 +234,17 @@ def main():
         ylabel="MAPE", 
         title="Training and Validation Loss", 
         perconfig=True
-    )
-    
-    CustomGWNPlotter.plot_adaptive_adj_matrix(
+    ) 
+    # Plot Adjacency Matrices 
+    # 
+    # Per Config  
+    CustomGWNPlotter.plot_adaptive_adj_matrix( 
         figure_name='GWN Adaptive Adjacency Matrix',
         dataframe=adj_matrix_results,
-        save_dir="plots"
+        save_dir="plots",
+        perconfig = True,
+        grouped = False
     )
-
-    # Outputting to Latex
-
-    ToLatex.to_latex(training_results)
-    ToLatex.to_latex(adj_matrix_results)
 
 
 if __name__ == '__main__':
